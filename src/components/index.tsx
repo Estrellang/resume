@@ -18,6 +18,7 @@ import { fetchResume } from '@/helpers/fetch-resume';
 import { Drawer } from './Drawer';
 import { Resume } from './Resume';
 import type { ResumeConfig, ThemeConfig } from './types';
+import { SITE_OWNER } from '@/data/site';
 
 import './index.less';
 
@@ -26,7 +27,7 @@ const codec = jsonUrl('lzma');
 export const Page: React.FC = () => {
   const lang = getLanguage();
   const intl = useIntl();
-  const user = getSearchObj().user || 'visiky';
+  const user = String(getSearchObj().user || SITE_OWNER);
 
   const [, mode, changeMode] = useModeSwitcher({});
 
@@ -128,7 +129,11 @@ export const Page: React.FC = () => {
     (v: Partial<ResumeConfig>) => {
       const newC = _.assign({}, config, v);
       changeConfig(newC);
-      saveToLocalStorage(query.user as string, newC);
+      saveToLocalStorage(
+        query.user as string,
+        newC,
+        intl.formatMessage({ id: '已缓存在本地' })
+      );
     },
     [config, lang]
   );
@@ -251,15 +256,15 @@ export const Page: React.FC = () => {
                       cursor: 'pointer',
                     }}
                     onClick={() => {
-                      const user = query.user || 'visiky';
+                      const user = query.user || SITE_OWNER;
                       window.open(`https://github.com/${user}/${user}`);
                     }}
                   >
-                    {`${query.user || 'visiky'}'s resumeInfo`}
+                    {`${query.user || SITE_OWNER}'s resumeInfo`}
                   </span>
                   <span>
-                    {`（https://github.com/${query.user || 'visiky'}/${
-                      query.user || 'visiky'
+                    {`（https://github.com/${query.user || SITE_OWNER}/${
+                      query.user || SITE_OWNER
                     }/blob/${query.branch || 'master'}/resume.json）`}
                   </span>
                 </span>
