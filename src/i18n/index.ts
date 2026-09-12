@@ -1,7 +1,7 @@
 import { getLanguage } from '@/i18n';
 import type { Locale } from './types';
 
-const LocaleMap = {};
+const LocaleMap: Record<string, Locale> = {};
 
 /**
  * register a locale

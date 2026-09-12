@@ -1,6 +1,6 @@
 import fetch from 'cross-fetch';
 import _ from 'lodash-es';
-import type { ResumeConfig } from '@/components/types';
+import type { ResumeConfig } from '@/types/resume';
 import { customAssign } from './customAssign';
 
 export function fetchResume(

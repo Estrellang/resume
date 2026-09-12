@@ -10,7 +10,7 @@ type Props = {
   config: Array<{
     type: string /** 组件类型 */;
     attributeId: string;
-    displayName: string;
+    displayName?: string;
     formItemProps?: FormItemProps;
     cfg?: {
       [k: string]: any /**其它和组件本身有关的配置 */;
@@ -26,7 +26,7 @@ type Props = {
 };
 
 const FormItemComponentMap = (type: string) => (
-  props: { value: any; onChange?: (v) => void } = { value: null }
+  props: { value: any; onChange?: (value: any) => void } = { value: null }
 ) => {
   switch (type) {
     case 'checkbox':

@@ -16,8 +16,8 @@ import arrayMove from 'array-move';
 import { FormCreator } from '../FormCreator';
 import { getDefaultTitleNameMap } from '@/data/constant';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { MODULES, CONTENT_OF_MODULE } from '@/helpers/contant';
-import type { ResumeConfig, ThemeConfig } from '../types';
+import { MODULES, CONTENT_OF_MODULE } from '@/data/modules';
+import type { ResumeConfig, ThemeConfig } from '@/types/resume';
 import { ConfigTheme } from './ConfigTheme';
 import { Templates } from './Templates';
 import './index.less';
@@ -36,15 +36,38 @@ type Props = {
   style?: object;
 };
 
+type ModuleKey = Exclude<
+  keyof ResumeConfig,
+  'locales' | 'template' | 'titleNameMap'
+>;
+type ListModuleKey = Extract<ModuleKey, `${string}List`>;
+type ModuleDefinition = {
+  icon: React.ReactNode;
+  key: ModuleKey;
+  name: string;
+};
+type DragItem = { index: number };
+type DragableRowProps = React.HTMLAttributes<HTMLDivElement> & {
+  index: number;
+  moveRow: (oldIndex: number, newIndex: number) => void;
+};
+
 const type = 'DragableBodyRow';
 
-const DragableRow = ({ index, moveRow, ...restProps }) => {
-  const ref = useRef();
-  const [{ isOver, dropClassName }, drop] = useDrop({
+const DragableRow: React.FC<DragableRowProps> = ({
+  index,
+  moveRow,
+  ...restProps
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [{ isOver, dropClassName }, drop] = useDrop<
+    DragItem,
+    void,
+    { isOver?: boolean; dropClassName?: string }
+  >({
     accept: type,
     collect: monitor => {
-      // @ts-ignore
-      const { index: dragIndex } = monitor.getItem() || {};
+      const dragIndex = (monitor.getItem() as DragItem | null)?.index;
       if (dragIndex === index) {
         return {};
       }
@@ -55,11 +78,10 @@ const DragableRow = ({ index, moveRow, ...restProps }) => {
       };
     },
     drop: item => {
-      // @ts-ignore
       moveRow(item.index, index);
     },
   });
-  const [, drag] = useDrag({
+  const [, drag] = useDrag<DragItem, void, unknown>({
     type,
     item: { index },
     collect: monitor => ({
@@ -85,15 +107,18 @@ export const Drawer: React.FC<Props> = props => {
   const intl = useIntl();
 
   const [visible, setVisible] = useState(false);
-  const [childrenDrawer, setChildrenDrawer] = useState(null);
-  const [currentContent, updateCurrentContent] = useState(null);
+  const [childrenDrawer, setChildrenDrawer] = useState<ModuleKey | null>(null);
+  const [currentContent, updateCurrentContent] = useState<Record<
+    string,
+    any
+  > | null>(null);
 
   /**
    * 1. 更新currentContent State
    * 2. 调用 props.onValueChange 更新模板
    */
   const updateContent = useThrottle(
-    v => {
+    (v: Record<string, any>) => {
       const newConfig = _.merge({}, currentContent, v);
       updateCurrentContent(newConfig);
       props.onValueChange({
@@ -122,7 +147,7 @@ export const Drawer: React.FC<Props> = props => {
 
   const modules = useMemo(() => {
     const titleNameMap = props.value?.titleNameMap;
-    return MODULES({ intl, titleNameMap });
+    return MODULES({ intl, titleNameMap }) as ModuleDefinition[];
   }, [intl, props.value?.titleNameMap]);
 
   const contentOfModule = useMemo(() => {
@@ -135,7 +160,11 @@ export const Drawer: React.FC<Props> = props => {
   // #region 1 render: moduleContent
 
   // #region 1.1 render: ModuleList
-  const renderModuleList = ({ icon, key, name }, idx, values) => {
+  const renderModuleList = (
+    { icon, key, name }: ModuleDefinition & { key: ListModuleKey },
+    idx: number,
+    values: Array<Record<string, unknown>>
+  ) => {
     const header = (
       <>
         <span className="item-icon">{icon}</span>
@@ -166,7 +195,9 @@ export const Drawer: React.FC<Props> = props => {
       <DragableRow
         key={`${idx}`}
         index={idx}
-        moveRow={(oldIdx, newIdx) => swapItems(key, oldIdx, newIdx)}
+        moveRow={(oldIdx: number, newIdx: number) =>
+          swapItems(key, oldIdx, newIdx)
+        }
       >
         <div
           onClick={() => {
@@ -214,7 +245,7 @@ export const Drawer: React.FC<Props> = props => {
   // #endregion
 
   // #region 1.2 render: ModuleListItem when !_.endsWith(module.key,'List')
-  const renderModuleListItem = ({ icon, key, name }) => (
+  const renderModuleListItem = ({ icon, key, name }: ModuleDefinition) => (
     <div className="module-item" key={key}>
       <Collapse
         defaultActiveKey={[]}
@@ -250,8 +281,14 @@ export const Drawer: React.FC<Props> = props => {
           if (!_.endsWith(module.key, 'List')) {
             return renderModuleListItem(module);
           }
-          const values = _.get(props.value, module.key, []);
-          return renderModuleList(module, idx, values);
+          const values = _.get(props.value, module.key, []) as Array<
+            Record<string, unknown>
+          >;
+          return renderModuleList(
+            module as ModuleDefinition & { key: ListModuleKey },
+            idx,
+            values
+          );
         })}
       </div>
       <AntdDrawer
@@ -261,14 +298,19 @@ export const Drawer: React.FC<Props> = props => {
         visible={!!childrenDrawer}
       >
         <FormCreator
-          config={contentOfModule[childrenDrawer]}
+          config={
+            contentOfModule[childrenDrawer as keyof typeof contentOfModule] ||
+            []
+          }
           value={currentContent}
           isList={isList}
           onChange={v => {
             if (isList) {
-              const newValue = _.get(props.value, childrenDrawer, []);
+              const newValue = _.get(props.value, childrenDrawer, []) as Array<
+                Record<string, any>
+              >;
               if (currentContent) {
-                newValue[currentContent.dataIndex] = _.merge(
+                newValue[currentContent.dataIndex as number] = _.merge(
                   {},
                   currentContent,
                   v

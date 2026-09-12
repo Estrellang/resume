@@ -23,7 +23,7 @@ const DEFAULT_COLORS = [
 
 type ColorPickerProps = {
   value: string;
-  onChange?: (value) => void;
+  onChange?: (value: string) => void;
   canChangeColor?: boolean;
   style?: React.CSSProperties;
   className?: string;
@@ -39,7 +39,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = props => {
   } = props;
 
   const onColorChange = useCallback(
-    newColor => {
+    (newColor: { rgb: { r: number; g: number; b: number; a?: number } }) => {
       const {
         rgb: { r, g, b, a },
       } = newColor;

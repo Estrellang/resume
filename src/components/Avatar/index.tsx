@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Upload, Avatar as AntdAvatar } from 'antd';
+import type { AvatarProps as AntdAvatarProps } from 'antd/lib/avatar/avatar';
 import './index.less';
 
-export const Avatar = ({
+type Props = Pick<AntdAvatarProps, 'className' | 'shape' | 'size'> & {
+  avatarSrc?: string;
+};
+
+export const Avatar: React.FC<Props> = ({
   avatarSrc,
   className,
   shape = 'circle',
@@ -11,12 +16,11 @@ export const Avatar = ({
   return (
     <div className={`avatar ${!avatarSrc ? 'avatar-hidden' : ''}`}>
       {avatarSrc ? (
-        // @ts-ignore
         <AntdAvatar
           className={className}
           src={avatarSrc}
-          shape={shape as any}
-          size={size as any}
+          shape={shape}
+          size={size}
         />
       ) : (
         <span className="avatar-upload-tip">头像地址为空</span>

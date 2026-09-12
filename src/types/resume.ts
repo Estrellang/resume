@@ -3,8 +3,8 @@ export type ResumeConfig = {
   /** 头像 */
   avatar?: {
     src?: string;
-    shape?: string;
-    size?: string;
+    shape?: 'circle' | 'square';
+    size?: 'large' | 'small' | 'default' | number;
     hidden?: boolean;
   };
 

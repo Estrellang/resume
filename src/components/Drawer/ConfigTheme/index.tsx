@@ -1,7 +1,7 @@
 import { FormattedMessage } from 'react-intl';
 import React, { useEffect } from 'react';
 import { ColorPicker } from '../../FormCreator/ColorPicker';
-import type { ThemeConfig } from '../../types';
+import type { ThemeConfig } from '@/types/resume';
 
 type Props = ThemeConfig & {
   onChange: (v: Partial<ThemeConfig>) => void;

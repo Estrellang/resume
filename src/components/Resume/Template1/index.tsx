@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Rate, Tag } from 'antd';
 import {
   MobileFilled,
@@ -16,7 +16,7 @@ import _ from 'lodash-es';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { getDefaultTitleNameMap } from '@/data/constant';
 import { Avatar } from '../../Avatar';
-import type { ResumeConfig, ThemeConfig } from '../../types';
+import type { ResumeConfig, ThemeConfig } from '@/types/resume';
 import './index.less';
 
 type Props = {
@@ -24,7 +24,15 @@ type Props = {
   theme: ThemeConfig;
 };
 
-const wrapper = ({ id, title, color }) => WrappedComponent => {
+const wrapper = ({
+  id,
+  title,
+  color,
+}: {
+  id?: string;
+  title?: ReactNode;
+  color: string;
+}) => (WrappedComponent: ReactNode) => {
   return (
     <section>
       <div className="section-header">

@@ -15,11 +15,11 @@ export const useModeSwitcher = ({
   className,
 }: {
   className?: string;
-}): [JSX.Element, string, (v) => void] => {
+}): [JSX.Element, string, (value: string) => void] => {
   const mode = getMode();
   const query = getSearchObj();
 
-  const changeMode = value => {
+  const changeMode = (value: string) => {
     if (value === mode) return;
     const {
       pathname,

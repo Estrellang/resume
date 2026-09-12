@@ -1,6 +1,11 @@
-import type { ResumeConfig } from '@/components/types';
+import type { ResumeConfig } from '@/types/resume';
+import type { IntlShape } from 'react-intl';
 
-export function getDefaultTitleNameMap({ intl }): ResumeConfig['titleNameMap'] {
+export function getDefaultTitleNameMap({
+  intl,
+}: {
+  intl: IntlShape;
+}): ResumeConfig['titleNameMap'] {
   return {
     /** 默认: 教育背景 */
     educationList: intl.formatMessage({ id: '教育背景' }),

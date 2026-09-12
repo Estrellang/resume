@@ -1,63 +1,101 @@
-## 🧾 Resume Generator
+# Resume Generator
 
-在线简历生成器。可以在线预览、编辑和下载 PDF 简历。✨ [在线编辑](https://estrellang.github.io/resume/)
+一个可自行部署的在线简历编辑器。它提供实时编辑、三套模板、主题色、中英文内容、配置导入导出、分享链接和浏览器打印 PDF。项目目前以稳定现有能力为主，重构计划见 [ROADMAP.md](./ROADMAP.md)，已知限制见 [TODO.md](./TODO.md)。
 
-内置 3 套模板，支持**自定义主题颜色**、**自定义模块标题**、**国际化(中/英)** 等.
+## 项目信息
 
-## 技术栈（Tech stack）
+| 项目     | 当前值                                                           |
+| -------- | ---------------------------------------------------------------- |
+| 名称     | Resume Generator                                                 |
+| 在线站点 | <https://estrellang.github.io/resume/>                           |
+| 源码仓库 | <https://github.com/Estrellang/resume>                           |
+| 许可证   | MIT；保留上游作者与当前维护者的版权声明，见 [LICENSE](./LICENSE) |
 
-- **应用框架**：Gatsby `2.32.13`，使用 Gatsby 生成和构建单页应用，并通过自定义 Webpack 配置提供 `@` 路径别名。
-- **前端框架**：React `17.0.1`、React DOM `17.0.1`。
-- **开发语言**：TypeScript `4.2.3`，结合 Babel 完成 TypeScript、JSX 和现代 JavaScript 语法转换。
-- **组件与交互**：Ant Design `4.16.6`、`@ant-design/icons`、`react-color`、`react-dnd`，用于界面组件、主题颜色选择和拖拽编辑。
-- **样式方案**：Less `4.1.0`，通过 `gatsby-plugin-less` 和 `gatsby-plugin-antd` 集成，并支持主题变量定制。
-- **国际化与页面能力**：FormatJS / `react-intl`，支持中英文切换；`react-helmet` 用于管理页面标题等 head 信息。
-- **数据与浏览器能力**：`query-string` 解析 URL 参数，`cross-fetch` 获取远程简历数据，`localStorage` 保存本地配置。
-- **构建与发布**：pnpm 管理依赖，通过 GitHub Actions 发布到 GitHub Pages。
-- **代码规范**：Prettier 格式化，Husky + lint-staged 在提交前处理 TypeScript 文件。
+## 环境要求
 
-|默认模板| 简易模板| 简易模板2（适用于多页）|
-| -------------------------------- | --------------------------------------------------|----------------------- |
-| <img src="https://user-images.githubusercontent.com/15646325/147406773-d1583d83-b4ed-496a-9b7c-2fca8a5fc624.png" height="280" />|<img src="https://user-images.githubusercontent.com/15646325/147406862-19ac2b2a-6dcf-466f-a0dd-53fd1a6abccd.png" height="280" />| <img src="https://user-images.githubusercontent.com/15646325/147406903-19529fe9-9ef8-4877-8165-b2fad0e3b48a.png" height="280" />|
-|[Live Demo](https://estrellang.github.io/resume/?mode=edit&template=template1)  |[Live Demo](https://estrellang.github.io/resume/?mode=edit&template=template2)|[Live Demo](https://estrellang.github.io/resume/?mode=edit&template=template3) |
+- Node.js 20（仓库中的 `.nvmrc` 为准）
+- pnpm 10.8.1（`package.json#packageManager` 为准）
 
-## 如何使用（How to use）
+不使用 npm 或 Yarn 更新依赖；仓库只维护 `pnpm-lock.yaml`。
 
-**方式 1:**
-
-在线编辑 -> 导出配置 -> 将“简历信息”存储为 GitHub 个人同名仓库中的 `resume.json`。
-
-**方式 2:**
-
-直接在自己的 GitHub 个人同名仓库中创建 `resume.json` 文件。
-
-**最后**
-
-访问 `https://estrellang.github.io/resume/?user={user}&branch={branch}`。
-
-参数说明:
-
-| 参数   | 描述          | 默认值       |
-| ------ | ------------- | ------------ |
-| user   | github 用户名 | 必选         |
-| template | 模板        | 默认: template1 |
-| branch | 分支名        | 默认: master |
-| mode | 模式        | 备注: 默认为‘只读’模式，设置为: `mode=edit` 即可进入编辑模式 |
-| lang | 语言        | 默认: zh-CN |
-
-## 本地开发（Local develop）
+## 本地开发
 
 ```bash
-# pnpm required, to see: https://pnpm.io/installation
-# Install dependencies
-pnpm install
-# Then, start
-pnpm start
+corepack enable
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
-推荐使用 Node.js 20 和 pnpm 10.8.1；仓库中的 `.nvmrc` 与 `packageManager` 字段记录了基线版本。详细验证结果见 [BASELINE.md](./BASELINE.md)。
+打开终端输出的本地地址，并追加 `?mode=edit` 进入编辑模式。常用检查命令：
 
-## ✨ Recommendation
+```bash
+pnpm typecheck
+pnpm format:check
+pnpm build
+```
 
-- [resumemaker](https://www.resumemaker.online/es.php)
-- [Geek Resume - Pure Markdown, an online resume editor for developer.](https://www.jijian.press/)
+`pnpm clean` 可删除 Gatsby 的本地产物。更完整的基线验证结果见 [BASELINE.md](./BASELINE.md)。
+
+## 使用方式
+
+编辑模式下可直接修改示例内容，并通过“复制配置”或“保存简历”导出 JSON。只读模式默认从 GitHub 的 `https://raw.githubusercontent.com/{user}/{user}/{branch}/resume.json` 读取简历。
+
+| 参数       | 说明                                    | 默认值      |
+| ---------- | --------------------------------------- | ----------- |
+| `user`     | GitHub 用户名；远程仓库名与用户名相同   | 站点维护者  |
+| `branch`   | `resume.json` 所在分支                  | `master`    |
+| `template` | `template1`、`template2` 或 `template3` | `template1` |
+| `mode`     | 设置为 `edit` 进入编辑模式；缺省为只读  | 只读        |
+| `lang`     | `zh-CN` 或 `en-US`                      | `zh-CN`     |
+
+例如：
+
+```text
+https://estrellang.github.io/resume/?user={user}&branch={branch}
+```
+
+## 项目配置
+
+项目没有运行时必填环境变量。构建时可使用以下变量覆盖 fork 的公开信息；变量只用于公开站点配置，不要在其中存放密钥。
+
+| 变量                    | 默认值                                 | 用途                                    |
+| ----------------------- | -------------------------------------- | --------------------------------------- |
+| `GATSBY_SITE_OWNER`     | `Estrellang`                           | 默认 GitHub 用户和页脚维护者            |
+| `GATSBY_SITE_URL`       | `https://estrellang.github.io/resume/` | 正式站点地址                            |
+| `GATSBY_REPOSITORY_URL` | `https://github.com/Estrellang/resume` | 项目源码链接                            |
+| `GATSBY_PATH_PREFIX`    | `/resume`                              | GitHub Pages 子路径；用户站点可设为 `/` |
+
+可复制 `.env.example` 为 `.env.development` 或 `.env.production` 后修改。当前项目未启用 Google Analytics，也不读取统计 ID；若以后重新接入，需要同时更新隐私说明。
+
+## 构建与部署
+
+生产构建统一使用：
+
+```bash
+pnpm build
+```
+
+产物位于 `public/`，构建会应用 `GATSBY_PATH_PREFIX`。仓库的 `.github/workflows/deploy.yml` 在 `master` 分支推送后使用 pnpm 构建并发布到 GitHub Pages，也支持手动触发。首次部署前请在仓库设置中允许 GitHub Actions 写入 Pages 分支，并确认上表中的站点地址和路径前缀与仓库名一致。
+
+维护者也可以在具有仓库写权限的本地环境运行 `pnpm deploy`，它会重新构建并把 `public/` 发布到 `gh-pages` 分支。
+
+## 目录职责
+
+- `src/components/`：可复用界面组件和简历模板。
+- `src/data/`：默认简历、站点信息和表单模块定义等静态配置。
+- `src/helpers/`：无界面依赖的读取、保存、导出与数据处理函数。
+- `src/hooks/`：React 状态与交互逻辑。
+- `src/i18n/`：语言检测、文案注册和翻译资源。
+- `src/layout/`：页面级页头与页脚。
+- `src/pages/`：Gatsby 页面入口。
+- `src/types/`：跨模块类型声明。
+
+## 贡献约定
+
+1. 从 `master` 创建分支并保持改动范围单一。
+2. 提交前运行 `pnpm typecheck`、`pnpm format:check` 和 `pnpm build`。
+3. 改动 URL 参数或 JSON 结构时说明兼容影响；暂不处理的问题记录到 [TODO.md](./TODO.md)。
+
+## 技术栈
+
+Gatsby 2、React 17、TypeScript、Ant Design、Less、FormatJS、Prettier、Husky 和 lint-staged。当前版本较旧但已建立可运行基线，依赖升级会按路线图单独进行。

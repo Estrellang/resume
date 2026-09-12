@@ -12,7 +12,7 @@ export const LangSwitcher = ({ className }: { className?: string }) => {
   const mode = getMode();
   const intl = useIntl();
 
-  const changeLanguage = value => {
+  const changeLanguage = (value: string) => {
     if (value === lang) return;
 
     const {

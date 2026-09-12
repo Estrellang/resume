@@ -1,4 +1,4 @@
-import type { ResumeConfig } from '@/components/types';
+import type { ResumeConfig } from '@/types/resume';
 
 /** 无真实个人信息的默认示例，用于本地编辑和功能验证。 */
 export const RESUME_INFO: ResumeConfig = {

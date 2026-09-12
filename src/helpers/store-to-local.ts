@@ -1,12 +1,12 @@
 import { message } from 'antd';
-import type { ResumeConfig } from '@/components/types';
+import type { ResumeConfig } from '@/types/resume';
 import { customAssign } from '@/helpers/customAssign';
 import _ from 'lodash-es';
 import { RESUME_INFO } from '@/data/resume';
 import { fetchResume } from './fetch-resume';
 import { intl } from '@/i18n';
 
-export const LOCAL_KEY = user => `${user ?? ''}resume-config`;
+export const LOCAL_KEY = (user?: string) => `${user ?? ''}resume-config`;
 
 export async function getConfig(
   lang: string,

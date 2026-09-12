@@ -17,12 +17,13 @@ import { getConfig, saveToLocalStorage } from '@/helpers/store-to-local';
 import { fetchResume } from '@/helpers/fetch-resume';
 import { Drawer } from './Drawer';
 import { Resume } from './Resume';
-import type { ResumeConfig, ThemeConfig } from './types';
+import type { ResumeConfig, ThemeConfig } from '@/types/resume';
 import { SITE_OWNER } from '@/data/site';
 
 import './index.less';
 
 const codec = jsonUrl('lzma');
+type ExportedConfig = ResumeConfig & { theme?: ThemeConfig };
 
 export const Page: React.FC = () => {
   const lang = getLanguage();
@@ -33,6 +34,9 @@ export const Page: React.FC = () => {
 
   const originalConfig = useRef<ResumeConfig>();
   const query = getSearchObj();
+  const selectedTemplate = Array.isArray(query.template)
+    ? query.template[0]
+    : query.template || 'template1';
   const [config, setConfig] = useState<ResumeConfig>();
   const [loading, updateLoading] = useState<boolean>(true);
   const [theme, setTheme] = useState<ThemeConfig>({
@@ -83,7 +87,7 @@ export const Page: React.FC = () => {
     const branch = (query.branch || 'master') as string;
     const mode = query.mode;
 
-    function store(data) {
+    function store(data: ResumeConfig) {
       originalConfig.current = data;
       changeConfig(
         _.omit(customAssign({}, data, _.get(data, ['locales', lang])), [
@@ -184,10 +188,9 @@ export const Page: React.FC = () => {
       const reader = new FileReader();
       reader.onload = () => {
         try {
-          if (reader.result) {
-            // @ts-ignore
-            const newConfig: ConfigProps = JSON.parse(reader.result);
-            onThemeChange(newConfig.theme);
+          if (typeof reader.result === 'string') {
+            const newConfig = JSON.parse(reader.result) as ExportedConfig;
+            if (newConfig.theme) onThemeChange(newConfig.theme);
             onConfigChange(_.omit(newConfig, 'theme'));
           }
           message.success(intl.formatMessage({ id: '上传配置已应用' }));
@@ -276,11 +279,7 @@ export const Page: React.FC = () => {
         )}
         <div className="page">
           {config && (
-            <Resume
-              value={config}
-              theme={theme}
-              template={query.template || 'template1'}
-            />
+            <Resume value={config} theme={theme} template={selectedTemplate} />
           )}
           {mode === 'edit' && (
             <React.Fragment>
@@ -291,8 +290,7 @@ export const Page: React.FC = () => {
                     onValueChange={onConfigChange}
                     theme={theme}
                     onThemeChange={onThemeChange}
-                    // @ts-ignore
-                    template={query.template || 'template1'}
+                    template={selectedTemplate}
                     onTemplateChange={updateTemplate}
                   />
                   <Button type="primary" onClick={copyConfig}>

@@ -12,7 +12,8 @@ import {
 } from '@ant-design/icons';
 import _ from 'lodash-es';
 import { intl } from '@/i18n';
-import type { ResumeConfig } from '@/components/types';
+import type { ResumeConfig } from '@/types/resume';
+import type { IntlShape } from 'react-intl';
 
 /**
  * ① 内置的简历模块
@@ -22,7 +23,7 @@ export const MODULES = ({
   intl,
   titleNameMap,
 }: {
-  intl: any;
+  intl: IntlShape;
   titleNameMap?: ResumeConfig['titleNameMap'];
 }) => {
   return [
@@ -80,7 +81,7 @@ export const MODULES = ({
 /**
  * 模块对应配置内容
  */
-export const CONTENT_OF_MODULE = ({ intl }) => {
+export const CONTENT_OF_MODULE = ({ intl }: { intl: IntlShape }) => {
   return {
     avatar: [
       {
@@ -286,8 +287,9 @@ export const CONTENT_OF_MODULE = ({ intl }) => {
           step: 20,
           min: 0,
           max: 100,
-          formatter: value => `${value}%`,
-          parser: value => _.replace(value, '%', ''),
+          formatter: (value: number | string | undefined) => `${value}%`,
+          parser: (value: string | undefined) =>
+            _.replace(value || '', '%', ''),
         },
       },
       {

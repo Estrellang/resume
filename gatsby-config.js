@@ -1,10 +1,21 @@
+const normalizePathPrefix = value => {
+  if (!value || value === '/') return '/';
+  return `/${value.replace(/^\/+|\/+$/g, '')}`;
+};
+
+const owner = process.env.GATSBY_SITE_OWNER || 'Estrellang';
+const repositoryUrl =
+  process.env.GATSBY_REPOSITORY_URL || 'https://github.com/Estrellang/resume';
+
 module.exports = {
-  pathPrefix: '/resume',
+  pathPrefix: normalizePathPrefix(process.env.GATSBY_PATH_PREFIX || '/resume'),
   siteMetadata: {
     title: 'Resume Generator',
-    githubUrl: 'https://github.com/Estrellang/resume',
-    author: 'Estrellang',
-    contact: 'https://github.com/Estrellang',
+    siteUrl:
+      process.env.GATSBY_SITE_URL || 'https://estrellang.github.io/resume/',
+    githubUrl: repositoryUrl,
+    author: owner,
+    contact: `https://github.com/${owner}`,
   },
   flags: {
     DEV_SSR: false,
