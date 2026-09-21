@@ -38,7 +38,7 @@ type Props = {
 
 type ModuleKey = Exclude<
   keyof ResumeConfig,
-  'locales' | 'template' | 'titleNameMap'
+  'schemaVersion' | 'locales' | 'template' | 'titleNameMap'
 >;
 type ListModuleKey = Extract<ModuleKey, `${string}List`>;
 type ModuleDefinition = {

@@ -13,18 +13,23 @@ import { customAssign } from '@/helpers/customAssign';
 import { copyToClipboard } from '@/helpers/copy-to-board';
 import { getDevice } from '@/helpers/detect-device';
 import { exportDataToLocal } from '@/helpers/export-to-local';
-import { getConfig, saveToLocalStorage } from '@/helpers/store-to-local';
+import { saveToLocalStorage } from '@/helpers/store-to-local';
+import { loadEditableResume } from '@/helpers/load-resume';
 import { fetchResume } from '@/helpers/fetch-resume';
 import { Drawer } from './Drawer';
 import { Resume } from './Resume';
 import type { ResumeConfig, ThemeConfig } from '@/types/resume';
 import { SITE_OWNER } from '@/data/site';
+import {
+  parseResumeFile,
+  ResumeValidationError,
+  splitResumeFile,
+  validateResumeConfig,
+} from '@/helpers/resume-schema';
 
 import './index.less';
 
 const codec = jsonUrl('lzma');
-type ExportedConfig = ResumeConfig & { theme?: ThemeConfig };
-
 export const Page: React.FC = () => {
   const lang = getLanguage();
   const intl = useIntl();
@@ -76,10 +81,14 @@ export const Page: React.FC = () => {
     window.location.href = `${pathname}?${search}${hash}`;
   };
 
-  const changeConfig = (v: Partial<ResumeConfig>) => {
-    setConfig(
-      _.assign({}, { titleNameMap: getDefaultTitleNameMap({ intl }) }, v)
-    );
+  const changeConfig = (value: ResumeConfig) => {
+    setConfig({
+      ...value,
+      titleNameMap: {
+        ...getDefaultTitleNameMap({ intl }),
+        ...value.titleNameMap,
+      },
+    });
   };
 
   useEffect(() => {
@@ -89,11 +98,12 @@ export const Page: React.FC = () => {
 
     function store(data: ResumeConfig) {
       originalConfig.current = data;
-      changeConfig(
-        _.omit(customAssign({}, data, _.get(data, ['locales', lang])), [
-          'locales',
-        ])
+      const localizedConfig = customAssign(
+        { ...data },
+        _.get(data, ['locales', lang])
       );
+      delete localizedConfig.locales;
+      changeConfig(localizedConfig);
       updateLoading(false);
     }
 
@@ -117,12 +127,18 @@ export const Page: React.FC = () => {
           });
         });
     } else {
-      if (query.data) {
-        codec.decompress(query.data).then(data => {
-          store(JSON.parse(data));
-        });
+      if (typeof query.data === 'string') {
+        codec
+          .decompress(query.data)
+          .then(data => store(validateResumeConfig(JSON.parse(data))))
+          .catch(() => {
+            message.error(
+              intl.formatMessage({ id: '上传文件有误，请重新上传' })
+            );
+            updateLoading(false);
+          });
       } else {
-        getConfig(lang, branch, user).then(data => {
+        loadEditableResume(lang, branch, user).then(data => {
           store(data);
         });
       }
@@ -131,7 +147,8 @@ export const Page: React.FC = () => {
 
   const onConfigChange = useCallback(
     (v: Partial<ResumeConfig>) => {
-      const newC = _.assign({}, config, v);
+      if (!config) return;
+      const newC: ResumeConfig = { ...config, ...v };
       changeConfig(newC);
       saveToLocalStorage(
         query.user as string,
@@ -189,13 +206,20 @@ export const Page: React.FC = () => {
       reader.onload = () => {
         try {
           if (typeof reader.result === 'string') {
-            const newConfig = JSON.parse(reader.result) as ExportedConfig;
-            if (newConfig.theme) onThemeChange(newConfig.theme);
-            onConfigChange(_.omit(newConfig, 'theme'));
+            const { resume, theme: importedTheme } = splitResumeFile(
+              parseResumeFile(reader.result)
+            );
+            if (importedTheme) onThemeChange(importedTheme);
+            originalConfig.current = resume;
+            onConfigChange(resume);
           }
           message.success(intl.formatMessage({ id: '上传配置已应用' }));
-        } catch (err) {
-          message.error(intl.formatMessage({ id: '上传文件有误，请重新上传' }));
+        } catch (error) {
+          message.error(
+            error instanceof ResumeValidationError
+              ? error.message
+              : intl.formatMessage({ id: '上传文件有误，请重新上传' })
+          );
         }
       };
       reader.readAsText(file);
@@ -210,11 +234,21 @@ export const Page: React.FC = () => {
   };
 
   function getConfigJson() {
-    let fullConfig = config;
+    if (!config) {
+      throw new Error('简历数据尚未加载');
+    }
+    let fullConfig: ResumeConfig = config;
     if (lang !== 'zh-CN') {
-      fullConfig = customAssign({}, originalConfig?.current, {
-        locales: { [lang]: config },
-      });
+      const baseConfig = originalConfig.current || config;
+      fullConfig = customAssign(
+        { ...baseConfig },
+        {
+          locales: {
+            ...baseConfig.locales,
+            [lang]: _.omit(config, ['schemaVersion', 'locales']),
+          },
+        }
+      );
     }
     return JSON.stringify({ ...fullConfig, theme });
   }

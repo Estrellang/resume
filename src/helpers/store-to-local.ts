@@ -1,37 +1,22 @@
 import { message } from 'antd';
 import type { ResumeConfig } from '@/types/resume';
-import { customAssign } from '@/helpers/customAssign';
 import _ from 'lodash-es';
-import { RESUME_INFO } from '@/data/resume';
-import { fetchResume } from './fetch-resume';
-import { intl } from '@/i18n';
+import { splitResumeFile, validateResumeConfig } from './resume-schema';
 
 export const LOCAL_KEY = (user?: string) => `${user ?? ''}resume-config`;
 
-export async function getConfig(
-  lang: string,
-  branch: string,
-  user: string
-): Promise<ResumeConfig> {
-  // 先从本地缓存获取，否则从远程拉取
+export function loadFromLocalStorage(user: string): ResumeConfig | undefined {
   if (typeof localStorage !== 'undefined') {
     const config = localStorage.getItem(LOCAL_KEY(user));
-    let result;
     try {
-      result = JSON.parse(config || undefined);
-    } catch (e) {}
-    if (result) {
-      return Promise.resolve(result);
+      if (config) {
+        return splitResumeFile(validateResumeConfig(JSON.parse(config))).resume;
+      }
+    } catch (_error) {
+      // 无效缓存不阻断启动，继续尝试远程数据或内置示例。
     }
   }
-
-  return fetchResume(lang, branch, user).catch(() => {
-    message.warn(intl.formatMessage({ id: '从模板中获取' }), 1);
-    return _.omit(
-      customAssign({}, RESUME_INFO, _.get(RESUME_INFO, ['locales', lang])),
-      ['locales']
-    );
-  });
+  return undefined;
 }
 
 export const saveToLocalStorage = _.throttle(

@@ -1,10 +1,9 @@
 import fetch from 'cross-fetch';
-import _ from 'lodash-es';
 import type { ResumeConfig } from '@/types/resume';
-import { customAssign } from './customAssign';
+import { splitResumeFile, validateResumeConfig } from './resume-schema';
 
 export function fetchResume(
-  lang: string,
+  _lang: string,
   branch: string,
   user: string
 ): Promise<ResumeConfig> {
@@ -17,9 +16,5 @@ export function fetchResume(
       }
       return data.json();
     })
-    .then(data => {
-      return _.omit(customAssign({}, data, _.get(data, ['locales', lang])), [
-        'locales',
-      ]);
-    });
+    .then(data => splitResumeFile(validateResumeConfig(data)).resume);
 }

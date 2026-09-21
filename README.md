@@ -40,6 +40,8 @@ pnpm build
 
 编辑模式下可直接修改示例内容，并通过“复制配置”或“保存简历”导出 JSON。只读模式默认从 GitHub 的 `https://raw.githubusercontent.com/{user}/{user}/{branch}/resume.json` 读取简历。
 
+新导出的 JSON 包含 `schemaVersion: 1`。无版本的历史配置会自动迁移，无效字段或未来版本会在导入时被拒绝。完整数据约定见 [DATA_MODEL.md](./DATA_MODEL.md)。
+
 | 参数       | 说明                                    | 默认值      |
 | ---------- | --------------------------------------- | ----------- |
 | `user`     | GitHub 用户名；远程仓库名与用户名相同   | 站点维护者  |

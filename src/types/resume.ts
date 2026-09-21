@@ -1,113 +1,141 @@
+export const CURRENT_RESUME_SCHEMA_VERSION = 1;
+
+export type ResumeSchemaVersion = typeof CURRENT_RESUME_SCHEMA_VERSION;
+
+export type Avatar = {
+  src?: string;
+  shape?: 'circle' | 'square';
+  size?: 'large' | 'small' | 'default' | number;
+  hidden?: boolean;
+};
+
+export type Profile = {
+  name: string;
+  mobile?: string;
+  email?: string;
+  github?: string;
+  zhihu?: string;
+  /** 工作经验 xx 年 */
+  workExpYear?: string;
+  /** 期望工作地 */
+  workPlace?: string;
+  /** 职位 */
+  positionTitle?: string;
+};
+
+export type Education = {
+  edu_time: [string | undefined, string | number | null];
+  school: string;
+  major?: string;
+  /** 学历 */
+  academic_degree?: string;
+};
+
+export type WorkExperience = {
+  company_name: string;
+  department_name: string;
+  work_time: [string | undefined, string | number | null];
+  work_desc: string;
+};
+
+export type ProjectExperience = {
+  project_name: string;
+  project_role: string;
+  project_desc?: string;
+  project_content?: string;
+  project_time?: string;
+};
+
+export type Skill = {
+  skill_name?: string;
+  skill_level?: number;
+  skill_desc?: string;
+};
+
+export type Award = {
+  award_info: string;
+  award_time?: string;
+};
+
+export type Work = {
+  work_name?: string;
+  work_desc?: string;
+  visit_link?: string;
+};
+
+export type AboutMe = {
+  aboutme_desc: string;
+};
+
+export type CustomSection = {
+  id: string;
+  title: string;
+  items: Array<{
+    title?: string;
+    subtitle?: string;
+    description?: string;
+  }>;
+};
+
+export type ResumeTitleNameMap = {
+  educationList?: string;
+  workExpList?: string;
+  projectList?: string;
+  skillList?: string;
+  awardList?: string;
+  workList?: string;
+  aboutme?: string;
+};
+
 /** 简历配置内容 */
 export type ResumeConfig = {
+  /** 数据结构版本，用于导入时执行兼容迁移。 */
+  schemaVersion: ResumeSchemaVersion;
+
   /** 头像 */
-  avatar?: {
-    src?: string;
-    shape?: 'circle' | 'square';
-    size?: 'large' | 'small' | 'default' | number;
-    hidden?: boolean;
-  };
+  avatar?: Avatar;
 
   /** 个人信息 */
-  profile?: {
-    name: string;
-    mobile?: string;
-    email?: string;
-    github?: string;
-    zhihu?: string;
-    /** 工作经验 xx 年 */
-    workExpYear?: string;
-    /** 期望工作地 */
-    workPlace?: string;
-    /** 职位 */
-    positionTitle?: string;
-  };
+  profile?: Profile;
 
   /** 标题名称映射 */
-  titleNameMap?: {
-    /** 默认: 教育背景 */
-    educationList?: string;
-    /** 默认: 工作经历 */
-    workExpList?: string;
-    /** 默认: 项目经历 */
-    projectList?: string;
-    /** 默认: 个人技能 */
-    skillList?: string;
-    /** 默认: 更多信息 */
-    awardList?: string;
-    /** 默认: 作品 */
-    workList?: string;
-    /** 自我介绍 */
-    aboutme?: string;
-  };
+  titleNameMap?: ResumeTitleNameMap;
 
   /** 教育背景 */
-  educationList?: Array<{
-    edu_time: [string | undefined, string | number];
-    school: string;
-    major?: string;
-    /** 学历 */
-    academic_degree?: string;
-  }>;
+  educationList?: Education[];
 
   /** 工作经历 */
-  workExpList?: Array<{
-    company_name: string;
-    department_name: string;
-    work_time?: [string | undefined, string | number];
-    work_desc: string;
-  }>;
+  workExpList?: WorkExperience[];
 
   /** 项目经历 */
-  projectList?: Array<{
-    /** 项目名称 */
-    project_name: string;
-    /** 担任角色 */
-    project_role: string;
-    /** 描述 */
-    project_desc?: string;
-    /** 项目内容，负责内容 */
-    project_content?: string;
-    /** 项目时间 */
-    project_time?: string;
-  }>;
+  projectList?: ProjectExperience[];
 
   /** 个人技能 */
-  skillList?: Array<{
-    /** 技能项 */
-    skill_name?: string;
-    /** 掌握程度 */
-    skill_level?: number;
-    /** 技能描述 */
-    skill_desc?: string;
-  }>;
+  skillList?: Skill[];
 
   /** 更多信息 */
-  awardList?: Array<{
-    // 奖项
-    award_info: string;
-    award_time?: string;
-  }>;
+  awardList?: Award[];
 
   /** 作品 */
-  workList?: Array<{
-    work_name?: string;
-    work_desc?: string;
-    visit_link?: string;
-  }>;
+  workList?: Work[];
 
   /** 自我介绍 */
-  aboutme?: {
-    aboutme_desc: string;
-  };
+  aboutme?: AboutMe;
+
+  /** 自定义模块，编辑和渲染支持将在后续阶段接入。 */
+  customSections?: CustomSection[];
 
   /** 增加国际化 */
   locales?: {
-    [key: string]: ResumeConfig;
+    [key: string]: ResumeLocaleConfig;
   };
 
   template?: string;
 };
+
+export type ResumeLocaleConfig = Partial<
+  Omit<ResumeConfig, 'schemaVersion' | 'locales'>
+>;
 
 /**
  * 主题配置，暂时只支持主题色
@@ -118,3 +146,6 @@ export type ThemeConfig = {
   /** Tag 标签色 */
   tagColor: string;
 };
+
+/** 导入导出文件格式；主题不属于简历内容，但会随文件一起保存。 */
+export type ResumeFile = ResumeConfig & { theme?: ThemeConfig };
