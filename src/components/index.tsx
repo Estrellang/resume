@@ -129,10 +129,15 @@ export const Page: React.FC = () => {
     }
 
     if (!mode) {
+      if (!query.user) {
+        store(validateResumeConfig(_.cloneDeep(RESUME_INFO)));
+        return;
+      }
       const link = `https://github.com/${user}/${user}/tree/${branch}`;
       fetchResume(lang, branch, user)
         .then(data => store(data))
         .catch(() => {
+          updateLoading(false);
           Modal.info({
             title: <FormattedMessage id="获取简历信息失败" />,
             content: (
