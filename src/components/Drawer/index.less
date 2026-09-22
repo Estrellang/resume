@@ -16,7 +16,7 @@
   .ant-collapse > .ant-collapse-item > .ant-collapse-header {
     padding: 4px 0;
     width: auto;
-    .ant-collapse-header-text{
+    .ant-collapse-header-text {
       display: flex;
     }
   }
@@ -62,6 +62,20 @@
     }
   }
 
+  .custom-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    font-family: roboto-medium;
+  }
+
+  .custom-section-list {
+    margin-left: 0;
+  }
+
   .btn-append {
     color: rgba(0, 0, 0, 0.45);
     text-align: center;
@@ -94,7 +108,26 @@
   }
 }
 
+.custom-section-form-item {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.015);
+}
+
+.custom-section-submit {
+  margin-top: 16px;
+}
+
+@media (hover: none) {
+  .module-list .list-value-item > div .anticon-delete {
+    display: inline-block;
+  }
+}
+
 // drawer 复写
-.ant-drawer-header, .ant-drawer-body {
+.ant-drawer-header,
+.ant-drawer-body {
   padding: 12px 24px;
 }

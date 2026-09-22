@@ -57,11 +57,12 @@ export const FormCreator: React.FC<Props> = props => {
     setFields(datas);
   }, [props.value]);
 
-  const handleChange = (values: any) => {
+  const handleChange = (formValues: any) => {
+    const values = { ...formValues };
     if ('edu_time' in values && typeof values.edu_time === 'string') {
       values.edu_time = values.edu_time.split(',');
     }
-    if ('work_time' in values) {
+    if ('work_time' in values && typeof values.work_time === 'string') {
       values.work_time = values.work_time.split(',');
     }
     props.onChange(values);
@@ -76,6 +77,7 @@ export const FormCreator: React.FC<Props> = props => {
         labelCol={{ span: 6 }}
         initialValues={props.value}
         fields={fields}
+        validateTrigger={['onChange', 'onBlur']}
         {...formProps}
       >
         {_.map(props.config, c => {

@@ -1,10 +1,17 @@
 import { message } from 'antd';
-import type { ResumeConfig } from '@/types/resume';
+import type { ResumeConfig, ThemeConfig } from '@/types/resume';
 import { RESUME_INFO } from '@/data/resume';
 import { intl } from '@/i18n';
 import { fetchResume } from './fetch-resume';
 import { validateResumeConfig } from './resume-schema';
-import { loadFromLocalStorage } from './store-to-local';
+import { loadDraftFromLocalStorage } from './store-to-local';
+
+export type EditableResume = {
+  resume: ResumeConfig;
+  theme?: ThemeConfig;
+  source: 'draft' | 'remote' | 'example';
+  savedAt?: number;
+};
 
 /**
  * 编辑模式的数据加载策略：本地草稿 -> 远程配置 -> 内置示例。
@@ -14,14 +21,28 @@ export async function loadEditableResume(
   lang: string,
   branch: string,
   user: string
-): Promise<ResumeConfig> {
-  const localResume = loadFromLocalStorage(user);
-  if (localResume) return localResume;
+): Promise<EditableResume> {
+  const localDraft = loadDraftFromLocalStorage(user);
+  if (localDraft) {
+    const { theme, ...resume } = localDraft.file;
+    return {
+      resume,
+      theme,
+      source: 'draft',
+      savedAt: localDraft.savedAt,
+    };
+  }
 
   try {
-    return await fetchResume(lang, branch, user);
+    return {
+      resume: await fetchResume(lang, branch, user),
+      source: 'remote',
+    };
   } catch (_error) {
     message.warn(intl.formatMessage({ id: '从模板中获取' }), 1);
-    return validateResumeConfig(RESUME_INFO);
+    return {
+      resume: validateResumeConfig(RESUME_INFO),
+      source: 'example',
+    };
   }
 }

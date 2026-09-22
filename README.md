@@ -1,6 +1,10 @@
 # Resume Generator
 
-一个可自行部署的在线简历编辑器。它提供实时编辑、三套模板、主题色、中英文内容、配置导入导出、分享链接和浏览器打印 PDF。项目目前以稳定现有能力为主，重构计划见 [ROADMAP.md](./ROADMAP.md)，已知限制见 [TODO.md](./TODO.md)。
+一个可自行部署的在线简历编辑器。它提供实时编辑、三套模板、主题色、中英文内容、配置导入导出、分享链接和浏览器打印 PDF。
+
+✨ [在线编辑](https://estrellang.github.io/resume/?mode=edit) · [在线预览](https://estrellang.github.io/resume/)
+
+项目目前以稳定现有能力为主，重构计划见 [ROADMAP.md](./ROADMAP.md)，已知限制见 [TODO.md](./TODO.md)。
 
 ## 项目信息
 
@@ -38,7 +42,7 @@ pnpm build
 
 ## 使用方式
 
-编辑模式下可直接修改示例内容，并通过“复制配置”或“保存简历”导出 JSON。只读模式默认从 GitHub 的 `https://raw.githubusercontent.com/{user}/{user}/{branch}/resume.json` 读取简历。
+编辑模式下可直接修改示例内容，并通过“复制配置”或“保存简历”导出 JSON。编辑内容和主题会自动保存为本地草稿，刷新后自动恢复；工具栏支持撤销、重做、恢复默认内容和自定义模块管理。键盘可使用 `Ctrl/Cmd + Z` 撤销、`Ctrl/Cmd + Shift + Z` 重做。只读模式默认从 GitHub 的 `https://raw.githubusercontent.com/{user}/{user}/{branch}/resume.json` 读取简历。
 
 新导出的 JSON 包含 `schemaVersion: 1`。无版本的历史配置会自动迁移，无效字段或未来版本会在导入时被拒绝。完整数据约定见 [DATA_MODEL.md](./DATA_MODEL.md)。
 

@@ -16,6 +16,7 @@ import _ from 'lodash-es';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { getDefaultTitleNameMap } from '@/data/constant';
 import { Avatar } from '../../Avatar';
+import { CustomSections } from '../CustomSections';
 import type { ResumeConfig, ThemeConfig } from '@/types/resume';
 import './index.less';
 
@@ -377,6 +378,13 @@ export const Template1: React.FC<Props> = props => {
               </div>
             )
           : null}
+        <CustomSections
+          sections={value.customSections}
+          color={theme.color}
+          renderTitle={(title, body) =>
+            wrapper({ title, color: theme.color })(body)
+          }
+        />
       </div>
     </div>
   );

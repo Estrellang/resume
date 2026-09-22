@@ -107,6 +107,40 @@ const assertStringProperties = (
   });
 };
 
+const assertCustomSections = (data: UnknownRecord) => {
+  const sections = data.customSections;
+  if (!Array.isArray(sections)) return;
+  sections.forEach((section, sectionIndex) => {
+    if (!isRecord(section)) return;
+    ['id', 'title'].forEach(field => {
+      if (typeof section[field] !== 'string' || !section[field]) {
+        throw new ResumeValidationError(
+          `字段 customSections[${sectionIndex}].${field} 必须是非空字符串`
+        );
+      }
+    });
+    if (!Array.isArray(section.items)) {
+      throw new ResumeValidationError(
+        `字段 customSections[${sectionIndex}].items 必须是数组`
+      );
+    }
+    section.items.forEach((item, itemIndex) => {
+      if (!isRecord(item)) {
+        throw new ResumeValidationError(
+          `字段 customSections[${sectionIndex}].items[${itemIndex}] 必须是对象`
+        );
+      }
+      ['title', 'subtitle', 'description'].forEach(field => {
+        if (item[field] !== undefined && typeof item[field] !== 'string') {
+          throw new ResumeValidationError(
+            `字段 customSections[${sectionIndex}].items[${itemIndex}].${field} 必须是字符串`
+          );
+        }
+      });
+    });
+  });
+};
+
 /** 创建不含示例个人信息的空数据，也作为缺省字段的唯一来源。 */
 export const createEmptyResumeConfig = (): ResumeConfig => ({
   schemaVersion: CURRENT_RESUME_SCHEMA_VERSION,
@@ -157,6 +191,7 @@ export const validateResumeConfig = (input: unknown): ResumeFile => {
   LIST_FIELDS.forEach(field => assertListField(data, field));
   assertTimeRanges(data, 'educationList', 'edu_time');
   assertTimeRanges(data, 'workExpList', 'work_time');
+  assertCustomSections(data);
 
   if (data.template !== undefined && typeof data.template !== 'string') {
     throw new ResumeValidationError('字段 template 必须是字符串');
@@ -181,6 +216,7 @@ export const validateResumeConfig = (input: unknown): ResumeFile => {
       }
       const override = localeConfig[locale] as UnknownRecord;
       LIST_FIELDS.forEach(field => assertListField(override, field));
+      assertCustomSections(override);
       OBJECT_FIELDS.filter(field => field !== 'locales').forEach(field =>
         assertObjectField(override, field)
       );
