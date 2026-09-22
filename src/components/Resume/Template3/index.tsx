@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Rate, Tag, Badge, Card } from 'antd';
 import {
   PhoneFilled,
@@ -15,7 +15,8 @@ import {
 import _ from 'lodash-es';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { getDefaultTitleNameMap } from '@/data/constant';
-import type { ResumeConfig, ThemeConfig } from '../../types';
+import { CustomSections } from '../CustomSections';
+import type { ResumeConfig, ThemeConfig } from '@/types/resume';
 import './index.less';
 
 type Props = {
@@ -23,7 +24,15 @@ type Props = {
   theme: ThemeConfig;
 };
 
-const wrapper = ({ id, title, color }) => WrappedComponent => {
+const wrapper = ({
+  id,
+  title,
+  color,
+}: {
+  id?: string;
+  title?: ReactNode;
+  color: string;
+}) => (WrappedComponent: ReactNode) => {
   return (
     <section>
       <div className="section-header">
@@ -368,6 +377,13 @@ export const Template3: React.FC<Props> = props => {
               </div>
             )
           : null}
+        <CustomSections
+          sections={value.customSections}
+          color={theme.color}
+          renderTitle={(title, body) =>
+            wrapper({ title, color: theme.color })(body)
+          }
+        />
       </div>
     </div>
   );

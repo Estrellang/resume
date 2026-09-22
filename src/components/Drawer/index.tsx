@@ -7,8 +7,15 @@ import {
   Radio,
   Popover,
   Input,
+  Form,
+  Space,
 } from 'antd';
-import { DeleteFilled, InfoCircleFilled } from '@ant-design/icons';
+import {
+  DeleteFilled,
+  InfoCircleFilled,
+  MinusCircleOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import _ from 'lodash-es';
@@ -16,8 +23,8 @@ import arrayMove from 'array-move';
 import { FormCreator } from '../FormCreator';
 import { getDefaultTitleNameMap } from '@/data/constant';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { MODULES, CONTENT_OF_MODULE } from '@/helpers/contant';
-import type { ResumeConfig, ThemeConfig } from '../types';
+import { MODULES, CONTENT_OF_MODULE } from '@/data/modules';
+import type { CustomSection, ResumeConfig, ThemeConfig } from '@/types/resume';
 import { ConfigTheme } from './ConfigTheme';
 import { Templates } from './Templates';
 import './index.less';
@@ -36,15 +43,38 @@ type Props = {
   style?: object;
 };
 
-const type = 'DragableBodyRow';
+type ModuleKey = Exclude<
+  keyof ResumeConfig,
+  'schemaVersion' | 'locales' | 'template' | 'titleNameMap'
+>;
+type ListModuleKey = Extract<ModuleKey, `${string}List`>;
+type ModuleDefinition = {
+  icon: React.ReactNode;
+  key: ModuleKey;
+  name: string;
+};
+type DragItem = { index: number };
+type DragableRowProps = React.HTMLAttributes<HTMLDivElement> & {
+  index: number;
+  dragType: string;
+  moveRow: (oldIndex: number, newIndex: number) => void;
+};
 
-const DragableRow = ({ index, moveRow, ...restProps }) => {
-  const ref = useRef();
-  const [{ isOver, dropClassName }, drop] = useDrop({
-    accept: type,
+const DragableRow: React.FC<DragableRowProps> = ({
+  index,
+  dragType,
+  moveRow,
+  ...restProps
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [{ isOver, dropClassName }, drop] = useDrop<
+    DragItem,
+    void,
+    { isOver?: boolean; dropClassName?: string }
+  >({
+    accept: dragType,
     collect: monitor => {
-      // @ts-ignore
-      const { index: dragIndex } = monitor.getItem() || {};
+      const dragIndex = (monitor.getItem() as DragItem | null)?.index;
       if (dragIndex === index) {
         return {};
       }
@@ -55,12 +85,11 @@ const DragableRow = ({ index, moveRow, ...restProps }) => {
       };
     },
     drop: item => {
-      // @ts-ignore
       moveRow(item.index, index);
     },
   });
-  const [, drag] = useDrag({
-    type,
+  const [, drag] = useDrag<DragItem, void, unknown>({
+    type: dragType,
     item: { index },
     collect: monitor => ({
       isDragging: monitor.isDragging(),
@@ -85,15 +114,23 @@ export const Drawer: React.FC<Props> = props => {
   const intl = useIntl();
 
   const [visible, setVisible] = useState(false);
-  const [childrenDrawer, setChildrenDrawer] = useState(null);
-  const [currentContent, updateCurrentContent] = useState(null);
+  const [childrenDrawer, setChildrenDrawer] = useState<ModuleKey | null>(null);
+  const [customSectionIndex, setCustomSectionIndex] = useState<number | null>(
+    null
+  );
+  const [customSectionVisible, setCustomSectionVisible] = useState(false);
+  const [customSectionForm] = Form.useForm<CustomSection>();
+  const [currentContent, updateCurrentContent] = useState<Record<
+    string,
+    any
+  > | null>(null);
 
   /**
    * 1. 更新currentContent State
    * 2. 调用 props.onValueChange 更新模板
    */
   const updateContent = useThrottle(
-    v => {
+    (v: Record<string, any>) => {
       const newConfig = _.merge({}, currentContent, v);
       updateCurrentContent(newConfig);
       props.onValueChange({
@@ -107,9 +144,9 @@ export const Drawer: React.FC<Props> = props => {
   const [type, setType] = useState('template');
 
   const swapItems = (moduleKey: string, oldIdx: number, newIdx: number) => {
-    const newValues = _.clone(_.get(props.value, moduleKey, []));
+    const newValues = _.cloneDeep(_.get(props.value, moduleKey, []));
     props.onValueChange({
-      [moduleKey]: arrayMove(newValues, newIdx, oldIdx),
+      [moduleKey]: arrayMove(newValues, oldIdx, newIdx),
     });
   };
 
@@ -122,7 +159,7 @@ export const Drawer: React.FC<Props> = props => {
 
   const modules = useMemo(() => {
     const titleNameMap = props.value?.titleNameMap;
-    return MODULES({ intl, titleNameMap });
+    return MODULES({ intl, titleNameMap }) as ModuleDefinition[];
   }, [intl, props.value?.titleNameMap]);
 
   const contentOfModule = useMemo(() => {
@@ -135,7 +172,11 @@ export const Drawer: React.FC<Props> = props => {
   // #region 1 render: moduleContent
 
   // #region 1.1 render: ModuleList
-  const renderModuleList = ({ icon, key, name }, idx, values) => {
+  const renderModuleList = (
+    { icon, key, name }: ModuleDefinition & { key: ListModuleKey },
+    idx: number,
+    values: Array<Record<string, unknown>>
+  ) => {
     const header = (
       <>
         <span className="item-icon">{icon}</span>
@@ -166,7 +207,10 @@ export const Drawer: React.FC<Props> = props => {
       <DragableRow
         key={`${idx}`}
         index={idx}
-        moveRow={(oldIdx, newIdx) => swapItems(key, oldIdx, newIdx)}
+        dragType={`resume-list-${key}`}
+        moveRow={(oldIdx: number, newIdx: number) =>
+          swapItems(key, oldIdx, newIdx)
+        }
       >
         <div
           onClick={() => {
@@ -180,7 +224,8 @@ export const Drawer: React.FC<Props> = props => {
           {`${idx + 1}. ${Object.values(value || {}).join(' - ')}`}
         </div>
         <DeleteFilled
-          onClick={() => {
+          onClick={event => {
+            event.stopPropagation();
             Modal.confirm({
               content: intl.formatMessage({ id: '确认删除' }),
               onOk: () => deleteItem(key, idx),
@@ -214,7 +259,7 @@ export const Drawer: React.FC<Props> = props => {
   // #endregion
 
   // #region 1.2 render: ModuleListItem when !_.endsWith(module.key,'List')
-  const renderModuleListItem = ({ icon, key, name }) => (
+  const renderModuleListItem = ({ icon, key, name }: ModuleDefinition) => (
     <div className="module-item" key={key}>
       <Collapse
         defaultActiveKey={[]}
@@ -250,27 +295,89 @@ export const Drawer: React.FC<Props> = props => {
           if (!_.endsWith(module.key, 'List')) {
             return renderModuleListItem(module);
           }
-          const values = _.get(props.value, module.key, []);
-          return renderModuleList(module, idx, values);
+          const values = _.get(props.value, module.key, []) as Array<
+            Record<string, unknown>
+          >;
+          return renderModuleList(
+            module as ModuleDefinition & { key: ListModuleKey },
+            idx,
+            values
+          );
         })}
+        <div className="custom-section-heading">
+          <span>
+            <FormattedMessage id="自定义模块" />
+          </span>
+          <Button
+            size="small"
+            type="link"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setCustomSectionIndex(null);
+              customSectionForm.resetFields();
+              customSectionForm.setFieldsValue({
+                items: [{}],
+              } as CustomSection);
+              setCustomSectionVisible(true);
+            }}
+          >
+            <FormattedMessage id="新增模块" />
+          </Button>
+        </div>
+        <div className="list-value-item custom-section-list">
+          {(props.value?.customSections || []).map((section, index) => (
+            <DragableRow
+              key={section.id}
+              index={index}
+              dragType="custom-sections"
+              moveRow={(oldIndex, newIndex) =>
+                swapItems('customSections', oldIndex, newIndex)
+              }
+            >
+              <div
+                onClick={() => {
+                  setCustomSectionIndex(index);
+                  customSectionForm.setFieldsValue(_.cloneDeep(section));
+                  setCustomSectionVisible(true);
+                }}
+              >
+                {section.title}
+              </div>
+              <DeleteFilled
+                onClick={event => {
+                  event.stopPropagation();
+                  Modal.confirm({
+                    content: intl.formatMessage({ id: '确认删除' }),
+                    onOk: () => deleteItem('customSections', index),
+                  });
+                }}
+              />
+            </DragableRow>
+          ))}
+        </div>
       </div>
       <AntdDrawer
         title={modules.find(m => m.key === childrenDrawer)?.name}
-        width={450}
+        width="min(450px, 100vw)"
         onClose={() => setChildrenDrawer(null)}
         visible={!!childrenDrawer}
       >
         <FormCreator
-          config={contentOfModule[childrenDrawer]}
+          config={
+            contentOfModule[childrenDrawer as keyof typeof contentOfModule] ||
+            []
+          }
           value={currentContent}
           isList={isList}
           onChange={v => {
             if (isList) {
-              const newValue = _.get(props.value, childrenDrawer, []);
+              const newValue = _.cloneDeep(
+                _.get(props.value, childrenDrawer, [])
+              ) as Array<Record<string, any>>;
               if (currentContent) {
-                newValue[currentContent.dataIndex] = _.merge(
+                newValue[currentContent.dataIndex as number] = _.merge(
                   {},
-                  currentContent,
+                  _.omit(currentContent, 'dataIndex'),
                   v
                 );
               } else {
@@ -289,6 +396,102 @@ export const Drawer: React.FC<Props> = props => {
           }}
         />
       </AntdDrawer>
+      <AntdDrawer
+        title={intl.formatMessage({
+          id: customSectionIndex === null ? '新增模块' : '编辑模块',
+        })}
+        width="min(450px, 100vw)"
+        onClose={() => setCustomSectionVisible(false)}
+        visible={customSectionVisible}
+        destroyOnClose={false}
+      >
+        <Form
+          form={customSectionForm}
+          layout="vertical"
+          onFinish={values => {
+            const sections = _.cloneDeep(props.value.customSections || []);
+            const section: CustomSection = {
+              id:
+                customSectionIndex === null
+                  ? `custom-${Date.now()}-${Math.random()
+                      .toString(36)
+                      .slice(2, 8)}`
+                  : sections[customSectionIndex].id,
+              title: values.title,
+              items: values.items || [],
+            };
+            if (customSectionIndex === null) sections.push(section);
+            else sections[customSectionIndex] = section;
+            props.onValueChange({ customSections: sections });
+            setCustomSectionVisible(false);
+          }}
+        >
+          <Form.Item
+            name="title"
+            label={intl.formatMessage({ id: '模块标题' })}
+            rules={[{ required: true, whitespace: true }]}
+          >
+            <Input maxLength={60} />
+          </Form.Item>
+          <Form.List name="items">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map((field, index) => (
+                  <div className="custom-section-form-item" key={field.key}>
+                    <Space align="baseline">
+                      <strong>{index + 1}</strong>
+                      <MinusCircleOutlined onClick={() => remove(field.name)} />
+                    </Space>
+                    <Form.Item
+                      {...field}
+                      name={[field.name, 'title']}
+                      fieldKey={[field.fieldKey, 'title']}
+                      label={intl.formatMessage({ id: '条目标题' })}
+                    >
+                      <Input maxLength={100} />
+                    </Form.Item>
+                    <Form.Item
+                      {...field}
+                      name={[field.name, 'subtitle']}
+                      fieldKey={[field.fieldKey, 'subtitle']}
+                      label={intl.formatMessage({ id: '条目副标题' })}
+                    >
+                      <Input maxLength={100} />
+                    </Form.Item>
+                    <Form.Item
+                      {...field}
+                      name={[field.name, 'description']}
+                      fieldKey={[field.fieldKey, 'description']}
+                      label={intl.formatMessage({ id: '条目描述' })}
+                    >
+                      <Input.TextArea
+                        autoSize={{ minRows: 3 }}
+                        maxLength={2000}
+                      />
+                    </Form.Item>
+                  </div>
+                ))}
+                <Button
+                  type="dashed"
+                  block
+                  icon={<PlusOutlined />}
+                  onClick={() => add()}
+                >
+                  <FormattedMessage id="新增条目" />
+                </Button>
+              </>
+            )}
+          </Form.List>
+          <Button
+            className="custom-section-submit"
+            type="primary"
+            htmlType="submit"
+            block
+          >
+            <FormattedMessage id="保存模块" />
+          </Button>
+        </Form>
+      </AntdDrawer>
     </DndProvider>
   );
 
@@ -304,7 +507,7 @@ export const Drawer: React.FC<Props> = props => {
         <FormattedMessage id="进行配置" />
         <Popover
           content={
-            <FormattedMessage id="移动端模式下，只支持预览，不支持配置" />
+            <FormattedMessage id="手机和平板也可编辑，建议横屏获得更大空间" />
           }
         >
           <InfoCircleFilled style={{ marginLeft: '4px' }} />
@@ -321,7 +524,7 @@ export const Drawer: React.FC<Props> = props => {
             </Radio.Button>
           </Radio.Group>
         }
-        width={480}
+        width="min(480px, 100vw)"
         closable={false}
         onClose={() => setVisible(false)}
         visible={visible}

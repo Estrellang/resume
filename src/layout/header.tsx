@@ -3,6 +3,7 @@ import { LangSwitcher } from '@/components/LangSwitcher';
 import { getMode, useModeSwitcher } from '@/hooks/useModeSwitcher';
 import { getSearchObj } from '@/helpers/location';
 import { FormattedMessage } from 'react-intl';
+import { SITE_URL } from '@/data/site';
 import './header.less';
 
 const Header: React.FC = () => {
@@ -12,7 +13,9 @@ const Header: React.FC = () => {
   function gotoOnlineVersion() {
     const query = getSearchObj();
     if (typeof window !== 'undefined') {
-      window.open(`https://visiky.github.io/resume/?user=${query.user}`);
+      const url = new URL(SITE_URL);
+      if (query.user) url.searchParams.set('user', String(query.user));
+      window.open(url.toString());
     }
   }
 

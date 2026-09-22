@@ -5,15 +5,17 @@ import { reduce } from 'lodash-es';
  * @param string
  * @param options
  */
-export function template(source: string, data?: object): string {
+export function template(
+  source: string,
+  data?: Record<string, string | number>
+): string {
   if (!data) {
     return source;
   }
   return reduce(
-    // @ts-ignore
     data,
-    (r: string, v: string, k: string) =>
-      r.replace(new RegExp(`{\\s*${k}\\s*}`, 'g'), v),
+    (r: string, v: string | number, k: string) =>
+      r.replace(new RegExp(`{\\s*${k}\\s*}`, 'g'), String(v)),
     source
   );
 }

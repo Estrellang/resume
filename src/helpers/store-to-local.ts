@@ -1,48 +1,50 @@
-import { useIntl } from 'react-intl';
-import { message } from 'antd';
-import type { ResumeConfig } from '@/components/types';
-import { customAssign } from '@/helpers/customAssign';
-import _ from 'lodash-es';
-import { RESUME_INFO } from '@/data/resume';
-import { fetchResume } from './fetch-resume';
-import { intl } from '@/i18n';
+import type { ResumeConfig, ResumeFile } from '@/types/resume';
+import { validateResumeConfig } from './resume-schema';
 
-export const LOCAL_KEY = user => `${user ?? ''}resume-config`;
+export const LOCAL_KEY = (user?: string) => `${user ?? ''}resume-config`;
+export const LOCAL_META_KEY = (user?: string) => `${LOCAL_KEY(user)}-metadata`;
 
-export async function getConfig(
-  lang: string,
-  branch: string,
+export type LocalDraft = {
+  file: ResumeFile;
+  savedAt?: number;
+};
+
+export function loadDraftFromLocalStorage(
   user: string
-): Promise<ResumeConfig> {
-  // 先从本地缓存获取，否则从远程拉取
+): LocalDraft | undefined {
   if (typeof localStorage !== 'undefined') {
     const config = localStorage.getItem(LOCAL_KEY(user));
-    let result;
     try {
-      result = JSON.parse(config || undefined);
-    } catch (e) {}
-    if (result) {
-      return Promise.resolve(result);
+      if (config) {
+        const metadata = localStorage.getItem(LOCAL_META_KEY(user));
+        const savedAt = metadata
+          ? Number((JSON.parse(metadata) as { savedAt?: number }).savedAt)
+          : undefined;
+        return {
+          file: validateResumeConfig(JSON.parse(config)),
+          savedAt: Number.isFinite(savedAt) ? savedAt : undefined,
+        };
+      }
+    } catch (_error) {
+      // 无效缓存不阻断启动，继续尝试远程数据或内置示例。
     }
   }
-
-  return fetchResume(lang, branch, user).catch(() => {
-    message.warn(intl.formatMessage({ id: '从模板中获取' }), 1);
-    return _.omit(
-      customAssign({}, RESUME_INFO, _.get(RESUME_INFO, ['locales', lang])),
-      ['locales']
-    );
-  });
+  return undefined;
 }
 
-export const saveToLocalStorage = _.throttle(
-  (user: string, config: ResumeConfig) => {
-    const intl = useIntl();
+/** 兼容旧调用方，只返回简历主体。 */
+export function loadFromLocalStorage(user: string): ResumeConfig | undefined {
+  const draft = loadDraftFromLocalStorage(user);
+  if (!draft) return undefined;
+  const { theme: _theme, ...resume } = draft.file;
+  return resume;
+}
 
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(LOCAL_KEY(user), JSON.stringify(config));
-      message.success(intl.formatMessage({ id: '已缓存在本地' }), 0.65);
-    }
-  },
-  5000
-);
+/** localStorage 是同步存储；时间戳用于界面提示最近一次成功保存。 */
+export function saveToLocalStorage(user: string, file: ResumeFile): number {
+  if (typeof localStorage === 'undefined') return 0;
+  const savedAt = Date.now();
+  localStorage.setItem(LOCAL_KEY(user), JSON.stringify(file));
+  localStorage.setItem(LOCAL_META_KEY(user), JSON.stringify({ savedAt }));
+  return savedAt;
+}

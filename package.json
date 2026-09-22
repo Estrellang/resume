@@ -1,14 +1,14 @@
 {
-  "name": "resume",
+  "name": "resume-generator",
   "version": "1.1.5",
   "private": true,
+  "packageManager": "pnpm@10.8.1",
   "dependencies": {
     "@ant-design/icons": "^4.6.2",
     "antd": "^4.16.6",
     "array-move": "^3.0.1",
     "classnames": "^2.3.1",
     "cross-fetch": "^3.1.4",
-    "gatsby-plugin-google-gtag": "^4.23.0",
     "json-url": "^3.0.0",
     "lodash-es": "^4.17.21",
     "query-string": "^7.1.1",
@@ -49,11 +49,14 @@
     "typescript": "^4.2.3"
   },
   "scripts": {
-    "start": "cross-env NODE_DEV=development gatsby clean && node -e \"require('fs').mkdirSync('.cache', { recursive: true })\" && gatsby develop",
+    "dev": "cross-env NODE_ENV=development gatsby clean && node -e \"require('fs').mkdirSync('.cache', { recursive: true })\" && gatsby develop",
+    "start": "pnpm dev",
     "build": "gatsby build --prefix-paths",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "typecheck": "tsc --noEmit",
     "clean": "gatsby clean",
-    "deploy": "npm run clean && gatsby build --prefix-paths && gh-pages -d public",
+    "deploy": "pnpm clean && pnpm build && gh-pages -d public",
     "prepare": "husky install",
     "lint-staged": "lint-staged",
     "i18n-pick": "node ./scripts/i18n-pick.js",
@@ -64,17 +67,22 @@
       "prettier --write"
     ]
   },
+  "pnpm": {
+    "overrides": {
+      "@mdx-js/util": "2.0.0-next.8"
+    }
+  },
   "repository": {
     "type": "git",
-    "url": "git@github.com:visiky/resume.git"
+    "url": "git+https://github.com/Estrellang/resume.git"
   },
   "keywords": [
     "resume"
   ],
-  "author": "visiky <736929286@qq.com>",
+  "author": "Estrellang contributors",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/visiky/resume/issues"
+    "url": "https://github.com/Estrellang/resume/issues"
   },
-  "homepage": "https://github.com/visiky/resume#readme"
+  "homepage": "https://estrellang.github.io/resume/"
 }

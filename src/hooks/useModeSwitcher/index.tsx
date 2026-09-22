@@ -8,18 +8,18 @@ import './index.less';
 
 export function getMode() {
   const query = getSearchObj();
-  return (query ? query.mode : 'read') as string;
+  return (query.mode || 'read') as string;
 }
 
 export const useModeSwitcher = ({
   className,
 }: {
   className?: string;
-}): [JSX.Element, string, (v) => void] => {
+}): [JSX.Element, string, (value: string) => void] => {
   const mode = getMode();
   const query = getSearchObj();
 
-  const changeMode = value => {
+  const changeMode = (value: string) => {
     if (value === mode) return;
     const {
       pathname,

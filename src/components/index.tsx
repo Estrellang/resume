@@ -1,8 +1,17 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { Button, Affix, Upload, Spin, message, Alert, Modal } from 'antd';
+import {
+  Button,
+  Affix,
+  Upload,
+  Spin,
+  message,
+  Alert,
+  Modal,
+  Tooltip,
+} from 'antd';
+import { RedoOutlined, UndoOutlined, HistoryOutlined } from '@ant-design/icons';
 import type { RcFile } from 'antd/lib/upload';
 import _ from 'lodash-es';
-import qs from 'query-string';
 import jsonUrl from 'json-url';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { getLanguage } from '@/i18n';
@@ -11,70 +20,79 @@ import { getDefaultTitleNameMap } from '@/data/constant';
 import { getSearchObj } from '@/helpers/location';
 import { customAssign } from '@/helpers/customAssign';
 import { copyToClipboard } from '@/helpers/copy-to-board';
-import { getDevice } from '@/helpers/detect-device';
 import { exportDataToLocal } from '@/helpers/export-to-local';
-import { getConfig, saveToLocalStorage } from '@/helpers/store-to-local';
+import { saveToLocalStorage } from '@/helpers/store-to-local';
+import { loadEditableResume } from '@/helpers/load-resume';
 import { fetchResume } from '@/helpers/fetch-resume';
 import { Drawer } from './Drawer';
 import { Resume } from './Resume';
-import type { ResumeConfig, ThemeConfig } from './types';
+import type { ResumeConfig, ResumeFile, ThemeConfig } from '@/types/resume';
+import { SITE_OWNER } from '@/data/site';
+import { RESUME_INFO } from '@/data/resume';
+import {
+  parseResumeFile,
+  ResumeValidationError,
+  splitResumeFile,
+  validateResumeConfig,
+} from '@/helpers/resume-schema';
 
 import './index.less';
 
 const codec = jsonUrl('lzma');
+const DEFAULT_THEME: ThemeConfig = {
+  color: '#2f5785',
+  tagColor: '#8bc34a',
+};
+
+type EditorSnapshot = { config: ResumeConfig; theme: ThemeConfig };
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export const Page: React.FC = () => {
   const lang = getLanguage();
   const intl = useIntl();
-  const user = getSearchObj().user || 'visiky';
+  const user = String(getSearchObj().user || SITE_OWNER);
+  const draftUser = String(getSearchObj().user || '');
 
   const [, mode, changeMode] = useModeSwitcher({});
 
   const originalConfig = useRef<ResumeConfig>();
   const query = getSearchObj();
+  const requestedTemplate = Array.isArray(query.template)
+    ? query.template[0]
+    : query.template || 'template1';
   const [config, setConfig] = useState<ResumeConfig>();
   const [loading, updateLoading] = useState<boolean>(true);
-  const [theme, setTheme] = useState<ThemeConfig>({
-    color: '#2f5785',
-    tagColor: '#8bc34a',
-  });
+  const [theme, setTheme] = useState<ThemeConfig>(DEFAULT_THEME);
+  const [revision, setRevision] = useState(0);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<number>();
+  const [restoredDraft, setRestoredDraft] = useState(false);
+  const past = useRef<EditorSnapshot[]>([]);
+  const future = useRef<EditorSnapshot[]>([]);
 
   useEffect(() => {
-    const {
-      pathname,
-      hash: currentHash,
-      search: currentSearch,
-    } = window.location;
-    const hash = currentHash === '#/' ? '' : currentHash;
-    const searchObj = qs.parse(currentSearch);
-    if (!searchObj.template) {
-      const search = qs.stringify({
-        template: config?.template || 'template1',
-        ...qs.parse(currentSearch),
-      });
-      window.location.href = `${pathname}?${search}${hash}`;
-    }
-  }, [config]);
+    if (!config || query.template) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('template', config.template || 'template1');
+    window.history.replaceState({}, '', url.toString());
+  }, [config, query.template]);
 
   const updateTemplate = (value: string) => {
-    const {
-      pathname,
-      hash: currentHash,
-      search: currentSearch,
-    } = window.location;
-    const hash = currentHash === '#/' ? '' : currentHash;
-    const search = qs.stringify({
-      ...qs.parse(currentSearch),
-      template: value,
-    });
-
-    window.location.href = `${pathname}?${search}${hash}`;
+    if (!config) return;
+    commitSnapshot({ config: { ...config, template: value }, theme });
+    const url = new URL(window.location.href);
+    url.searchParams.set('template', value);
+    window.history.replaceState({}, '', url.toString());
   };
 
-  const changeConfig = (v: Partial<ResumeConfig>) => {
-    setConfig(
-      _.assign({}, { titleNameMap: getDefaultTitleNameMap({ intl }) }, v)
-    );
+  const changeConfig = (value: ResumeConfig) => {
+    setConfig({
+      ...value,
+      titleNameMap: {
+        ...getDefaultTitleNameMap({ intl }),
+        ...value.titleNameMap,
+      },
+    });
   };
 
   useEffect(() => {
@@ -82,13 +100,31 @@ export const Page: React.FC = () => {
     const branch = (query.branch || 'master') as string;
     const mode = query.mode;
 
-    function store(data) {
+    function store(
+      data: ResumeConfig,
+      options?: { theme?: ThemeConfig; source?: string; savedAt?: number }
+    ) {
       originalConfig.current = data;
-      changeConfig(
-        _.omit(customAssign({}, data, _.get(data, ['locales', lang])), [
-          'locales',
-        ])
+      const localizedConfig = customAssign(
+        { ...data },
+        _.get(data, ['locales', lang])
       );
+      delete localizedConfig.locales;
+      changeConfig({
+        ...localizedConfig,
+        template:
+          typeof query.template === 'string'
+            ? query.template
+            : localizedConfig.template,
+      });
+      if (options?.theme) setTheme(options.theme);
+      if (options?.source === 'draft') {
+        setRestoredDraft(true);
+        setLastSavedAt(options.savedAt);
+        setSaveStatus('saved');
+      }
+      past.current = [];
+      future.current = [];
       updateLoading(false);
     }
 
@@ -112,41 +148,130 @@ export const Page: React.FC = () => {
           });
         });
     } else {
-      if (query.data) {
-        codec.decompress(query.data).then(data => {
-          store(JSON.parse(data));
-        });
+      if (typeof query.data === 'string') {
+        codec
+          .decompress(query.data)
+          .then(data => store(validateResumeConfig(JSON.parse(data))))
+          .catch(() => {
+            message.error(
+              intl.formatMessage({ id: '上传文件有误，请重新上传' })
+            );
+            updateLoading(false);
+          });
       } else {
-        getConfig(lang, branch, user).then(data => {
-          store(data);
+        loadEditableResume(lang, branch, user).then(result => {
+          store(result.resume, result);
         });
       }
     }
   }, [lang, query.user, query.branch, query.data]);
 
+  const commitSnapshot = useCallback(
+    (next: EditorSnapshot) => {
+      if (!config) return;
+      const current = { config, theme };
+      if (_.isEqual(current, next)) return;
+      past.current = [...past.current.slice(-49), _.cloneDeep(current)];
+      future.current = [];
+      changeConfig(next.config);
+      setTheme(next.theme);
+      setRestoredDraft(false);
+      setSaveStatus('saving');
+      setRevision(value => value + 1);
+    },
+    [config, theme]
+  );
+
   const onConfigChange = useCallback(
     (v: Partial<ResumeConfig>) => {
-      const newC = _.assign({}, config, v);
-      changeConfig(newC);
-      saveToLocalStorage(query.user as string, newC);
+      if (!config) return;
+      commitSnapshot({ config: { ...config, ...v }, theme });
     },
-    [config, lang]
+    [commitSnapshot, config, theme]
   );
 
   const onThemeChange = useCallback(
     (v: Partial<ThemeConfig>) => {
-      setTheme(_.assign({}, theme, v));
+      if (!config) return;
+      commitSnapshot({ config, theme: _.assign({}, theme, v) });
     },
-    [theme]
+    [commitSnapshot, config, theme]
+  );
+
+  const applyHistory = useCallback(
+    (direction: 'undo' | 'redo') => {
+      if (!config) return;
+      const source = direction === 'undo' ? past : future;
+      const target = direction === 'undo' ? future : past;
+      const snapshot = source.current[source.current.length - 1];
+      if (!snapshot) return;
+      source.current = source.current.slice(0, -1);
+      target.current = [
+        ...target.current.slice(-49),
+        _.cloneDeep({ config, theme }),
+      ];
+      changeConfig(snapshot.config);
+      setTheme(snapshot.theme);
+      setRestoredDraft(false);
+      setSaveStatus('saving');
+      setRevision(value => value + 1);
+    },
+    [config, theme]
   );
 
   useEffect(() => {
-    if (getDevice() === 'mobile') {
-      message.info(
-        intl.formatMessage({ id: '移动端只提供查看功能，在线制作请前往 PC 端' })
-      );
-    }
-  }, []);
+    if (mode !== 'edit' || !config || revision === 0) return;
+    const timer = window.setTimeout(() => {
+      try {
+        const savedAt = saveToLocalStorage(draftUser, getResumeFile());
+        setLastSavedAt(savedAt);
+        setSaveStatus('saved');
+      } catch (_error) {
+        setSaveStatus('error');
+      }
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [config, draftUser, mode, revision, theme]);
+
+  useEffect(() => {
+    if (mode !== 'edit' || !config) return;
+    const saveBeforeLeaving = () => {
+      if (revision > 0) {
+        try {
+          saveToLocalStorage(draftUser, getResumeFile());
+        } catch (_error) {
+          // beforeunload 会在保存失败时继续向用户发出离开警告。
+        }
+      }
+    };
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
+      if (saveStatus !== 'error') return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('pagehide', saveBeforeLeaving);
+    window.addEventListener('beforeunload', warnBeforeLeaving);
+    return () => {
+      window.removeEventListener('pagehide', saveBeforeLeaving);
+      window.removeEventListener('beforeunload', warnBeforeLeaving);
+    };
+  }, [config, draftUser, mode, revision, saveStatus, theme]);
+
+  useEffect(() => {
+    if (mode !== 'edit') return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        !(event.metaKey || event.ctrlKey) ||
+        event.key.toLowerCase() !== 'z'
+      ) {
+        return;
+      }
+      event.preventDefault();
+      applyHistory(event.shiftKey ? 'redo' : 'undo');
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [applyHistory, mode]);
 
   const [box, setBox] = useState({ width: 0, height: 0, left: 0 });
 
@@ -179,15 +304,23 @@ export const Page: React.FC = () => {
       const reader = new FileReader();
       reader.onload = () => {
         try {
-          if (reader.result) {
-            // @ts-ignore
-            const newConfig: ConfigProps = JSON.parse(reader.result);
-            onThemeChange(newConfig.theme);
-            onConfigChange(_.omit(newConfig, 'theme'));
+          if (typeof reader.result === 'string') {
+            const { resume, theme: importedTheme } = splitResumeFile(
+              parseResumeFile(reader.result)
+            );
+            originalConfig.current = resume;
+            commitSnapshot({
+              config: resume,
+              theme: importedTheme || theme,
+            });
           }
           message.success(intl.formatMessage({ id: '上传配置已应用' }));
-        } catch (err) {
-          message.error(intl.formatMessage({ id: '上传文件有误，请重新上传' }));
+        } catch (error) {
+          message.error(
+            error instanceof ResumeValidationError
+              ? error.message
+              : intl.formatMessage({ id: '上传文件有误，请重新上传' })
+          );
         }
       };
       reader.readAsText(file);
@@ -201,14 +334,28 @@ export const Page: React.FC = () => {
     return false;
   };
 
-  function getConfigJson() {
-    let fullConfig = config;
-    if (lang !== 'zh-CN') {
-      fullConfig = customAssign({}, originalConfig?.current, {
-        locales: { [lang]: config },
-      });
+  function getResumeFile(): ResumeFile {
+    if (!config) {
+      throw new Error('简历数据尚未加载');
     }
-    return JSON.stringify({ ...fullConfig, theme });
+    let fullConfig: ResumeConfig = config;
+    if (lang !== 'zh-CN') {
+      const baseConfig = originalConfig.current || config;
+      fullConfig = customAssign(
+        { ...baseConfig },
+        {
+          locales: {
+            ...baseConfig.locales,
+            [lang]: _.omit(config, ['schemaVersion', 'locales']),
+          },
+        }
+      );
+    }
+    return { ...fullConfig, theme };
+  }
+
+  function getConfigJson() {
+    return JSON.stringify(getResumeFile());
   }
 
   const copyConfig = () => {
@@ -229,6 +376,43 @@ export const Page: React.FC = () => {
       copyToClipboard(url.toString());
     });
   };
+
+  const restoreDefaults = () => {
+    if (!config) return;
+    Modal.confirm({
+      title: intl.formatMessage({ id: '恢复默认内容' }),
+      content: intl.formatMessage({
+        id: '这会用内置示例替换当前简历，之后仍可撤销。',
+      }),
+      okText: intl.formatMessage({ id: '确定恢复' }),
+      okButtonProps: { danger: true },
+      onOk: () => {
+        const defaultConfig = validateResumeConfig(_.cloneDeep(RESUME_INFO));
+        originalConfig.current = defaultConfig;
+        commitSnapshot({ config: defaultConfig, theme: DEFAULT_THEME });
+        const url = new URL(window.location.href);
+        url.searchParams.set('template', defaultConfig.template || 'template1');
+        window.history.replaceState({}, '', url.toString());
+      },
+    });
+  };
+
+  const saveStatusText = (() => {
+    if (saveStatus === 'saving') return intl.formatMessage({ id: '正在保存' });
+    if (saveStatus === 'error') return intl.formatMessage({ id: '保存失败' });
+    if (lastSavedAt) {
+      return intl.formatMessage(
+        { id: '最近保存时间：{time}' },
+        {
+          time: new Date(lastSavedAt).toLocaleTimeString(
+            lang === 'zh-CN' ? 'zh-CN' : 'en-US',
+            { hour: '2-digit', minute: '2-digit', second: '2-digit' }
+          ),
+        }
+      );
+    }
+    return intl.formatMessage({ id: '尚未修改' });
+  })();
 
   return (
     <React.Fragment>
@@ -251,15 +435,15 @@ export const Page: React.FC = () => {
                       cursor: 'pointer',
                     }}
                     onClick={() => {
-                      const user = query.user || 'visiky';
+                      const user = query.user || SITE_OWNER;
                       window.open(`https://github.com/${user}/${user}`);
                     }}
                   >
-                    {`${query.user || 'visiky'}'s resumeInfo`}
+                    {`${query.user || SITE_OWNER}'s resumeInfo`}
                   </span>
                   <span>
-                    {`（https://github.com/${query.user || 'visiky'}/${
-                      query.user || 'visiky'
+                    {`（https://github.com/${query.user || SITE_OWNER}/${
+                      query.user || SITE_OWNER
                     }/blob/${query.branch || 'master'}/resume.json）`}
                   </span>
                 </span>
@@ -274,10 +458,10 @@ export const Page: React.FC = () => {
             <Resume
               value={config}
               theme={theme}
-              template={query.template || 'template1'}
+              template={config.template || requestedTemplate}
             />
           )}
-          {mode === 'edit' && (
+          {mode === 'edit' && config && (
             <React.Fragment>
               <Affix offsetTop={0}>
                 <Button.Group className="btn-group">
@@ -286,10 +470,35 @@ export const Page: React.FC = () => {
                     onValueChange={onConfigChange}
                     theme={theme}
                     onThemeChange={onThemeChange}
-                    // @ts-ignore
-                    template={query.template || 'template1'}
+                    template={config?.template || requestedTemplate}
                     onTemplateChange={updateTemplate}
                   />
+                  <Tooltip
+                    title={intl.formatMessage({ id: '撤销（Ctrl/Cmd + Z）' })}
+                  >
+                    <Button
+                      aria-label={intl.formatMessage({ id: '撤销' })}
+                      icon={<UndoOutlined />}
+                      disabled={past.current.length === 0}
+                      onClick={() => applyHistory('undo')}
+                    >
+                      <FormattedMessage id="撤销" />
+                    </Button>
+                  </Tooltip>
+                  <Tooltip
+                    title={intl.formatMessage({
+                      id: '重做（Ctrl/Cmd + Shift + Z）',
+                    })}
+                  >
+                    <Button
+                      aria-label={intl.formatMessage({ id: '重做' })}
+                      icon={<RedoOutlined />}
+                      disabled={future.current.length === 0}
+                      onClick={() => applyHistory('redo')}
+                    >
+                      <FormattedMessage id="重做" />
+                    </Button>
+                  </Tooltip>
                   <Button type="primary" onClick={copyConfig}>
                     <FormattedMessage id="复制配置" />
                   </Button>
@@ -310,6 +519,18 @@ export const Page: React.FC = () => {
                   </Button>
                   <Button type="primary" onClick={handleSharing}>
                     <FormattedMessage id="分享" />
+                  </Button>
+                  <Button danger onClick={restoreDefaults}>
+                    <FormattedMessage id="恢复默认内容" />
+                  </Button>
+                  <Button
+                    className={`save-status save-status-${saveStatus}`}
+                    icon={<HistoryOutlined />}
+                    disabled
+                  >
+                    {restoredDraft && saveStatus === 'saved'
+                      ? intl.formatMessage({ id: '已恢复草稿' })
+                      : saveStatusText}
                   </Button>
                 </Button.Group>
               </Affix>

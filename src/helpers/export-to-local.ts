@@ -1,4 +1,4 @@
-export const exportDataToLocal = (data, fileName) => {
+export const exportDataToLocal = (data: unknown, fileName: string) => {
   const content = typeof data === 'string' ? data : JSON.stringify(data);
   const a = document.createElement('a');
   a.download = fileName;

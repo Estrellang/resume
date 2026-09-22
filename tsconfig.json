@@ -9,6 +9,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    "noImplicitAny": true,
     "skipLibCheck": true,
     "lib": ["esnext", "dom"],
     "jsx": "react",

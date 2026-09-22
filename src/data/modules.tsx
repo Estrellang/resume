@@ -12,7 +12,8 @@ import {
 } from '@ant-design/icons';
 import _ from 'lodash-es';
 import { intl } from '@/i18n';
-import type { ResumeConfig } from '@/components/types';
+import type { ResumeConfig } from '@/types/resume';
+import type { IntlShape } from 'react-intl';
 
 /**
  * ① 内置的简历模块
@@ -22,7 +23,7 @@ export const MODULES = ({
   intl,
   titleNameMap,
 }: {
-  intl: any;
+  intl: IntlShape;
   titleNameMap?: ResumeConfig['titleNameMap'];
 }) => {
   return [
@@ -80,7 +81,7 @@ export const MODULES = ({
 /**
  * 模块对应配置内容
  */
-export const CONTENT_OF_MODULE = ({ intl }) => {
+export const CONTENT_OF_MODULE = ({ intl }: { intl: IntlShape }) => {
   return {
     avatar: [
       {
@@ -128,7 +129,14 @@ export const CONTENT_OF_MODULE = ({ intl }) => {
         displayName: intl.formatMessage({ id: '手机号码' }),
         formItemProps: {
           rules: [
-            { required: true, message: 'Please input your phone number!' },
+            {
+              required: true,
+              message: intl.formatMessage({ id: '请输入手机号码' }),
+            },
+            {
+              pattern: /^[+()\-\s\d]{6,30}$/,
+              message: intl.formatMessage({ id: '手机号码格式不正确' }),
+            },
           ],
         },
       },
@@ -137,7 +145,16 @@ export const CONTENT_OF_MODULE = ({ intl }) => {
         attributeId: 'email',
         displayName: intl.formatMessage({ id: '邮箱' }),
         formItemProps: {
-          rules: [{ required: true, message: 'Please input your email!' }],
+          rules: [
+            {
+              required: true,
+              message: intl.formatMessage({ id: '请输入邮箱' }),
+            },
+            {
+              type: 'email' as const,
+              message: intl.formatMessage({ id: '邮箱格式不正确' }),
+            },
+          ],
         },
       },
       {
@@ -147,6 +164,15 @@ export const CONTENT_OF_MODULE = ({ intl }) => {
         cfg: {
           placeholder: 'Please input your github account, optional',
         },
+        formItemProps: {
+          rules: [
+            {
+              type: 'url' as const,
+              warningOnly: true,
+              message: intl.formatMessage({ id: '请输入完整链接' }),
+            },
+          ],
+        },
       },
       {
         type: 'input',
@@ -155,6 +181,15 @@ export const CONTENT_OF_MODULE = ({ intl }) => {
         cfg: {
           placeholder:
             'Please input the link to visit your zhihu account, optional',
+        },
+        formItemProps: {
+          rules: [
+            {
+              type: 'url' as const,
+              warningOnly: true,
+              message: intl.formatMessage({ id: '请输入完整链接' }),
+            },
+          ],
         },
       },
       {
@@ -270,6 +305,15 @@ export const CONTENT_OF_MODULE = ({ intl }) => {
         type: 'input',
         attributeId: 'visit_link',
         displayName: intl.formatMessage({ id: '作品链接' }),
+        formItemProps: {
+          rules: [
+            {
+              type: 'url' as const,
+              warningOnly: true,
+              message: intl.formatMessage({ id: '请输入完整链接' }),
+            },
+          ],
+        },
       },
     ],
     skillList: [
@@ -286,8 +330,9 @@ export const CONTENT_OF_MODULE = ({ intl }) => {
           step: 20,
           min: 0,
           max: 100,
-          formatter: value => `${value}%`,
-          parser: value => _.replace(value, '%', ''),
+          formatter: (value: number | string | undefined) => `${value}%`,
+          parser: (value: string | undefined) =>
+            _.replace(value || '', '%', ''),
         },
       },
       {

@@ -38,6 +38,16 @@ body {
         width: 106px;
         border-radius: 0 !important;
       }
+
+      .save-status {
+        width: auto;
+        min-width: 106px;
+        font-size: 12px;
+      }
+
+      .save-status-saving .anticon {
+        animation: save-status-pulse 1s ease-in-out infinite;
+      }
     }
   }
 
@@ -62,11 +72,28 @@ body {
     }
   }
 
-  // 移动端不给编辑
   @media (max-width: 414px) {
     .page {
-      padding: 0;
-      .btn-group,
+      padding: 8px;
+
+      .ant-affix {
+        position: static !important;
+      }
+
+      .btn-group {
+        display: flex;
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: auto;
+        padding-bottom: 6px;
+
+        .ant-btn {
+          flex: 0 0 auto;
+          width: auto;
+          min-width: 88px;
+        }
+      }
+
       .box-size-info {
         display: none;
       }
@@ -84,6 +111,16 @@ body {
     border-radius: 2px;
     padding: 2px 4px;
     margin: 4px 0px;
+  }
+}
+
+@keyframes save-status-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
   }
 }
 

@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@mdx-js/util': 2.0.0-next.8
+
 importers:
 
   .:
@@ -23,9 +26,6 @@ importers:
       cross-fetch:
         specifier: ^3.1.4
         version: 3.2.0
-      gatsby-plugin-google-gtag:
-        specifier: ^4.23.0
-        version: 4.25.0(gatsby@2.32.13(@types/node@26.5.0)(@types/react@17.0.93)(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(sockjs-client@1.6.1)(typescript@4.9.5))(react-dom@17.0.2(react@17.0.2))(react@17.0.2)
       json-url:
         specifier: ^3.0.0
         version: 3.1.0
@@ -1031,9 +1031,8 @@ packages:
   '@leichtgewicht/ip-codec@2.0.5':
     resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
 
-  '@mdx-js/util@2.0.0':
-    resolution: {integrity: sha512-428sYViiQaPQJhkcNm7xwZvAbCwzqNQJzMMTG9bDwrhgT+75VzA8dSeqy1QVSBElf+0wtwGXvAccoHan78XNZA==}
-    deprecated: Deprecated
+  '@mdx-js/util@2.0.0-next.8':
+    resolution: {integrity: sha512-T0BcXmNzEunFkuxrO8BFw44htvTPuAoKbLvTG41otyZBDV1Rs+JMddcUuaP5vXpTWtgD3grhcrPEwyx88RUumQ==}
 
   '@microsoft/fetch-event-source@2.0.1':
     resolution: {integrity: sha512-W6CLUJ2eBMw3Rec70qrsEW0jOm/3twwJv21mrmj2yORiaVmVYGS4sSS5yUwvQc1ZlDLYGPnClVWmUUMagKNsfA==}
@@ -3405,14 +3404,6 @@ packages:
 
   gatsby-plugin-antd@2.2.0:
     resolution: {integrity: sha512-hfELJ/PKxm1e3mvT+BstvVBUatSeqAAD2CkTrBwxSqn5BuRQWBPQmQAYhXQAtHAkLeheebBCAz1dCqZr9qtE0Q==}
-
-  gatsby-plugin-google-gtag@4.25.0:
-    resolution: {integrity: sha512-mzhjor5JYct1qQWLKayAHuyOHGHW3TT8Ns5fgdmSlqsmAR0X6dAh7zqSfqbvetGU309PZrRXeOrL92vjmeSIdQ==}
-    engines: {node: '>=14.15.0'}
-    peerDependencies:
-      gatsby: ^4.0.0-next
-      react: ^16.9.0 || ^17.0.0 || ^18.0.0 || ^0.0.0
-      react-dom: ^16.9.0 || ^17.0.0 || ^18.0.0 || ^0.0.0
 
   gatsby-plugin-less@5.15.0:
     resolution: {integrity: sha512-Glf+4wLKDKnX7kO3mjSmIcdOKtNxgF9BklBVKDvGPoW51Lv+yswkqRydHlNufbdfjR/XiVykx+2PxRk4QBH3lw==}
@@ -8931,7 +8922,7 @@ snapshots:
 
   '@leichtgewicht/ip-codec@2.0.5': {}
 
-  '@mdx-js/util@2.0.0': {}
+  '@mdx-js/util@2.0.0-next.8': {}
 
   '@microsoft/fetch-event-source@2.0.1': {}
 
@@ -12072,14 +12063,6 @@ snapshots:
       - react
       - react-dom
       - supports-color
-
-  gatsby-plugin-google-gtag@4.25.0(gatsby@2.32.13(@types/node@26.5.0)(@types/react@17.0.93)(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(sockjs-client@1.6.1)(typescript@4.9.5))(react-dom@17.0.2(react@17.0.2))(react@17.0.2):
-    dependencies:
-      '@babel/runtime': 7.29.7
-      gatsby: 2.32.13(@types/node@26.5.0)(@types/react@17.0.93)(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(sockjs-client@1.6.1)(typescript@4.9.5)
-      minimatch: 3.1.5
-      react: 17.0.2
-      react-dom: 17.0.2(react@17.0.2)
 
   gatsby-plugin-less@5.15.0(gatsby@2.32.13(@types/node@26.5.0)(@types/react@17.0.93)(react-dom@17.0.2(react@17.0.2))(react@17.0.2)(sockjs-client@1.6.1)(typescript@4.9.5))(webpack@4.47.0):
     dependencies:
@@ -15811,7 +15794,7 @@ snapshots:
       '@babel/helper-plugin-utils': 7.10.4
       '@babel/plugin-proposal-object-rest-spread': 7.10.4(@babel/core@7.10.5)
       '@babel/plugin-syntax-jsx': 7.10.4(@babel/core@7.10.5)
-      '@mdx-js/util': 2.0.0
+      '@mdx-js/util': 2.0.0-next.8
     transitivePeerDependencies:
       - supports-color
 
